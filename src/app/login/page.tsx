@@ -17,6 +17,7 @@ const APP = process.env.NEXT_PUBLIC_APP_NAME || "یک‌درصد";
 const ONBOARD_KEY = "zendegi:onboarded";
 
 type Screen = "splash" | "onboarding" | "auth";
+type AuthMethod = "passkey" | "password";
 
 const SLIDES: { icon: string; title: string; desc: string; grad: [string, string] }[] = [
   {
@@ -49,7 +50,9 @@ export default function LoginPage() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("splash");
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("passkey");
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [supported, setSupported] = useState(true);
@@ -77,6 +80,25 @@ export default function LoginPage() {
     setScreen("auth");
   }
 
+  async function registerWithPassword() {
+    setErr("");
+    if (username.trim().length < 2) return setErr("یک نام کاربری حداقل ۲ حرفی بنویس.");
+    if (password.length < 6) return setErr("رمز عبور باید حداقل ۶ کاراکتر باشد.");
+    setBusy(true);
+    try {
+      await apiSend("/api/auth/register/password", "POST", {
+        username,
+        password,
+      });
+      router.replace("/");
+      router.refresh();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function register() {
     setErr("");
     if (username.trim().length < 2) return setErr("یک نام کاربری حداقل ۲ حرفی بنویس.");
@@ -88,6 +110,25 @@ export default function LoginPage() {
       });
       const attResp = await startRegistration({ optionsJSON: options });
       await apiSend("/api/auth/register/verify", "POST", { response: attResp, displayName });
+      router.replace("/");
+      router.refresh();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loginWithPassword() {
+    setErr("");
+    if (!username.trim()) return setErr("نام کاربری را وارد کن.");
+    if (!password) return setErr("رمز عبور را وارد کن.");
+    setBusy(true);
+    try {
+      await apiSend("/api/auth/login/password", "POST", {
+        username,
+        password,
+      });
       router.replace("/");
       router.refresh();
     } catch (e: any) {
@@ -154,7 +195,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-[36px] font-extrabold tracking-tight grad-text leading-tight">{APP}</h1>
           <p className="secondary text-[16px] mt-1.5">
-            {isLogin ? "خوش برگشتی! با پسکی وارد شو." : "بیا حسابت رو بسازیم؛ بی‌رمز و امن."}
+            {isLogin ? "خوش برگشتی! ورود کن." : "بیا حسابت رو بسازیم."}
           </p>
         </div>
 
@@ -168,6 +209,32 @@ export default function LoginPage() {
         <div className="relative">
           <div className="card absolute inset-x-6 -bottom-2.5 top-3 -z-10 opacity-60" aria-hidden />
           <div className="float-card relative p-6 space-y-4">
+            {/* تب‌های روش احراز */}
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => { setAuthMethod("passkey"); setErr(""); setPassword(""); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
+                  authMethod === "passkey"
+                    ? "bg-ios-indigo text-white"
+                    : "bg-[var(--card-bg)] text-[var(--secondary)]"
+                }`}
+                disabled={busy}
+              >
+                پسکی
+              </button>
+              <button
+                onClick={() => { setAuthMethod("password"); setErr(""); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
+                  authMethod === "password"
+                    ? "bg-ios-indigo text-white"
+                    : "bg-[var(--card-bg)] text-[var(--secondary)]"
+                }`}
+                disabled={busy}
+              >
+                رمز عبور
+              </button>
+            </div>
+
             <input
               className="ios-input text-center"
               placeholder="نام کاربری"
@@ -179,21 +246,66 @@ export default function LoginPage() {
               disabled={busy}
             />
 
+            {authMethod === "password" && (
+              <input
+                className="ios-input text-center"
+                type="password"
+                placeholder="رمز عبور"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={busy}
+              />
+            )}
+
             <Button
-              onClick={isLogin ? login : register}
-              disabled={busy || !supported}
+              onClick={
+                authMethod === "password"
+                  ? isLogin
+                    ? loginWithPassword
+                    : registerWithPassword
+                  : isLogin
+                  ? login
+                  : register
+              }
+              disabled={busy || (!supported && authMethod === "passkey")}
               className="w-full flex items-center justify-center gap-2"
             >
-              {busy ? <Spinner /> : isLogin ? <KeyRound size={19} /> : <AppIcon name="sparkles" size={19} />}
-              {isLogin ? "ورود با پسکی" : "ساخت حساب با پسکی"}
+              {busy ? (
+                <Spinner />
+              ) : authMethod === "password" ? (
+                isLogin ? (
+                  <>ورود</>
+                ) : (
+                  <>ساخت حساب</>
+                )
+              ) : isLogin ? (
+                <KeyRound size={19} />
+              ) : (
+                <AppIcon name="sparkles" size={19} />
+              )}
+              {busy ? (
+                ""
+              ) : authMethod === "password" ? (
+                isLogin ? (
+                  "ورود با رمز عبور"
+                ) : (
+                  "ساخت حساب با رمز"
+                )
+              ) : isLogin ? (
+                "ورود با پسکی"
+              ) : (
+                "ساخت حساب با پسکی"
+              )}
             </Button>
 
             {err && <p className="text-ios-red text-[14px] text-center">{err}</p>}
 
-            <div className="flex items-center justify-center gap-2 pt-1 text-[var(--secondary)]">
-              <Fingerprint />
-              <span className="text-[12px]">Face ID · Touch ID · پین دستگاه</span>
-            </div>
+            {authMethod === "passkey" && (
+              <div className="flex items-center justify-center gap-2 pt-1 text-[var(--secondary)]">
+                <Fingerprint />
+                <span className="text-[12px]">Face ID · Touch ID · پین دستگاه</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -209,7 +321,7 @@ export default function LoginPage() {
         </button>
 
         <p className="secondary text-center text-[12px] mt-7 leading-6">
-          بدون رمز عبور — اطلاعاتت امن و خصوصی روی حساب خودت ذخیره می‌شود.
+          می‌تونی از پسکی (بی‌رمز) یا رمز عبور استفاده کنی. اطلاعاتت امن و خصوصی روی حساب خودت ذخیره می‌شود.
         </p>
       </div>
     </div>
