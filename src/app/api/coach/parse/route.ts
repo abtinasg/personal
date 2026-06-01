@@ -1,0 +1,22 @@
+import { authed, ok, bad } from "@/lib/api";
+import { captureFromText } from "@/lib/capture";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  const a = await authed();
+  if ("error" in a) return a.error;
+  const b = await req.json().catch(() => ({}));
+
+  const text = String(b.text || "").trim();
+  if (!text) return bad("یه چیزی بنویس تا ثبتش کنم.");
+
+  const { saved, note, errors } = await captureFromText(a.db, a.uid, text);
+
+  if (!saved.length) {
+    if (errors.length) return bad(errors[0], 502);
+    return ok({ saved: [], note: note || "چیزی برای ثبت پیدا نکردم. می‌تونی واضح‌تر بنویسی؟" });
+  }
+
+  return ok({ saved, note });
+}

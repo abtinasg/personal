@@ -1,0 +1,573 @@
+"use client";
+
+import Link from "next/link";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { Logo } from "@/components/icons";
+import { AppIcon } from "@/components/AppIcon";
+import { Ring } from "@/components/ui";
+
+const BRAND = "یک‌درصد";
+const SLOGAN = "هر روز یک‌درصد بهتر";
+
+type Feature = { icon: string; title: string; desc: string; color: string };
+
+const FEATURES: Feature[] = [
+  { icon: "star", color: "#8267f2", title: "هویت‌ها", desc: "آدمی که می‌خواهی بشوی را انتخاب کن؛ بعد هر کارِ کوچک، یک رأی به اوست." },
+  { icon: "flag", color: "#5b76f0", title: "ماموریت‌ها", desc: "هدفِ بزرگت را به ماموریت‌های قابل‌انجام بشکن؛ هوش مصنوعی کنارت قدم‌ها را می‌چیند." },
+  { icon: "repeat", color: "#2cb8cf", title: "عادت‌های اتمی", desc: "عادت‌های کوچکِ روزانه، با حلقه‌های پیشرفت و روزهای پیاپی که نمی‌خواهی بشکنی." },
+  { icon: "flame", color: "#fb9a5b", title: "کالریِ هوشمند", desc: "وعده‌ات را با یک عکس یا یک جمله بنویس؛ کالری و درشت‌مغذی‌ها خودکار تخمین زده می‌شود." },
+  { icon: "wallet", color: "#6a8bff", title: "بودجه و خرج", desc: "درآمد، هزینه و پس‌اندازت را ساده دنبال کن و سرِ بودجه‌ی ماهانه بمان." },
+  { icon: "heart", color: "#fb7fa0", title: "سلامتی", desc: "آب، وزن، قدم و خواب — روندِ سلامتت همیشه در یک نگاه." },
+  { icon: "strength", color: "#a96ff0", title: "برنامه‌ی ورزشی", desc: "تمرینِ هوازی و قدرتیِ امروزت را مربیِ هوشمند می‌چیند و باهات پیش می‌آید." },
+  { icon: "gift", color: "#f5c451", title: "جایزه و انگیزه", desc: "با روزهای پیاپیِ عالی، جایزه‌های واقعی برای خودت باز کن. انگیزه، بازی‌گونه." },
+];
+
+const STEPS: { icon: string; title: string; desc: string; color: string }[] = [
+  { icon: "star", color: "#8267f2", title: "هویت‌ات را انتخاب کن", desc: "تصمیم بگیر می‌خواهی چه‌جور آدمی باشی — ورزشکار، اهلِ مطالعه، آرام، منظم." },
+  { icon: "vote", color: "#5b76f0", title: "هر روز یک رأی بده", desc: "یک عادتِ کوچک، یک ماموریتِ کوچک. همین. فشار نیست، فقط یک‌درصد." },
+  { icon: "chart", color: "#22c391", title: "پیشرفتِ مرکب را ببین", desc: "حلقه‌ها پر می‌شوند، روزها پیاپی می‌شوند و یک‌درصدها روی هم جمع می‌شوند." },
+];
+
+const COACH_POINTS: { icon: string; text: string }[] = [
+  { icon: "sun", text: "بریفینگِ صبحگاهی، هر روز" },
+  { icon: "compass", text: "چتِ مربی، هر وقت گیر کردی" },
+  { icon: "flame", text: "تخمینِ کالریِ عکس و متن" },
+  { icon: "strength", text: "برنامه‌ی تمرینِ روزانه" },
+  { icon: "chart", text: "مرورِ هوشمندِ هفتگی" },
+];
+
+export default function Landing() {
+  return (
+    <div className="relative min-h-[100dvh] overflow-x-hidden">
+      <Aurora />
+      <Nav />
+      <main className="relative">
+        <Hero />
+        <Compound />
+        <Features />
+        <Coach />
+        <Steps />
+        <Privacy />
+        <FinalCTA />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+/* ───────────────────────── ناوبری ───────────────────────── */
+
+function Nav() {
+  return (
+    <header className="sticky top-0 z-40 glass border-b border-[var(--border)]">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 h-16 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="h-9 w-9 rounded-[14px] bg-gradient-to-br from-[#6a8bff] via-ios-indigo to-ios-purple shadow-glow flex items-center justify-center">
+            <Logo size={20} />
+          </span>
+          <span className="text-[20px] font-extrabold tracking-tight grad-text">{BRAND}</span>
+        </div>
+        <nav className="hidden md:flex items-center gap-7 text-[15px] secondary font-medium">
+          <a href="#compound" className="hover:text-[var(--label)] transition">رشدِ مرکب</a>
+          <a href="#features" className="hover:text-[var(--label)] transition">قابلیت‌ها</a>
+          <a href="#coach" className="hover:text-[var(--label)] transition">مربیِ هوشمند</a>
+          <a href="#how" className="hover:text-[var(--label)] transition">چطور کار می‌کند</a>
+        </nav>
+        <Link
+          href="/login"
+          className="ios-btn-primary text-[15px] !py-2.5 !px-5 shadow-glow active:scale-[0.97]"
+        >
+          شروع کن
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────── قهرمان ───────────────────────── */
+
+function Hero() {
+  return (
+    <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-14 sm:pt-20 pb-10">
+      <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+        <div className="text-center lg:text-right animate-fade-up">
+          <span className="chip border border-[var(--border)] shadow-soft !text-[13px] mb-6">
+            <AppIcon name="sparkles" size={15} className="text-ios-indigo" />
+            هویت‌ات را بساز، نه فقط فهرستِ کارها
+          </span>
+          <h1 className="text-[40px] sm:text-[58px] font-extrabold tracking-tight leading-[1.08]">
+            <span className="grad-text">هر روز</span>
+            <br className="hidden sm:block" />
+            <span> یک‌درصد بهتر.</span>
+          </h1>
+          <p className="secondary text-[17px] sm:text-[19px] leading-9 mt-6 max-w-xl mx-auto lg:mx-0">
+            «یک‌درصد» یک رأیِ کوچکِ روزانه به آدمی است که می‌خواهی بشوی. هویت‌ها، عادت‌های
+            اتمی، کالری، بودجه و سلامتی — همه یک‌جا، آرام و زیبا، با یک مربیِ همیشه‌همراه.
+          </p>
+          <div className="mt-9 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+            <Link href="/login" className="ios-btn-primary w-full sm:w-auto flex items-center justify-center gap-2 shadow-glow active:scale-[0.97]">
+              <AppIcon name="rocket" size={19} /> رایگان شروع کن
+            </Link>
+            <a href="#features" className="ios-btn-ghost w-full sm:w-auto flex items-center justify-center gap-2 active:scale-[0.97]">
+              قابلیت‌ها را ببین
+            </a>
+          </div>
+          <div className="mt-6 flex items-center lg:justify-start justify-center gap-2 secondary text-[13px]">
+            <AppIcon name="check" size={15} className="text-ios-green" />
+            ورودِ بی‌رمز با پسکی · Face ID و Touch ID · بدونِ کارت بانکی
+          </div>
+        </div>
+
+        <div className="relative animate-fade-up [animation-delay:120ms]">
+          <HeroPreview />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** کارتِ پیش‌نمایشِ اپ — با همان زبانِ بصریِ خودِ «یک‌درصد». */
+function HeroPreview() {
+  return (
+    <div className="relative mx-auto w-full max-w-sm">
+      <div className="absolute -inset-6 -z-10 rounded-[48px] blur-3xl opacity-60"
+        style={{ background: "linear-gradient(135deg,#8267f2,#6a8bff 50%,#2cb8cf)" }} />
+
+      <div className="float-card p-6 rotate-[-2.2deg]">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="secondary text-[13px]">امروز</p>
+            <p className="text-[20px] font-extrabold tracking-tight">رأی‌های امروزت</p>
+          </div>
+          <span className="chip !bg-ios-orange/15 text-ios-orange font-bold">
+            <AppIcon name="flame" size={15} /> ۱۲ روز پیاپی
+          </span>
+        </div>
+
+        <div className="flex items-center justify-center py-2">
+          <Ring progress={0.74} size={148} stroke={14} color="#8267f2">
+            <span className="text-[34px] font-extrabold tracking-tight">۷۴٪</span>
+            <span className="secondary text-[12px] -mt-1">۷ از ۹ کار</span>
+          </Ring>
+        </div>
+
+        <div className="mt-4 space-y-2.5">
+          <MiniRow icon="strength" color="#a96ff0" label="ورزشِ امروز" done />
+          <MiniRow icon="water" color="#2cb8cf" label="۸ لیوان آب" done />
+          <MiniRow icon="study" color="#5b76f0" label="۳۰ دقیقه مطالعه" />
+        </div>
+      </div>
+
+      <div className="float-card absolute -bottom-6 -left-4 sm:-left-8 p-4 rotate-[3deg] w-44 hidden sm:block">
+        <div className="flex items-center gap-2.5">
+          <span className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ background: "#fb9a5b22", color: "#fb9a5b" }}>
+            <AppIcon name="flame" size={20} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13px] secondary">کالریِ امروز</p>
+            <p className="text-[16px] font-extrabold">۱٬۸۴۰</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniRow({ icon, color, label, done }: { icon: string; color: string; label: string; done?: boolean }) {
+  return (
+    <div className="flex items-center gap-3 rounded-[18px] px-3 py-2.5"
+      style={{ background: "color-mix(in srgb, var(--card-solid) 50%, transparent)" }}>
+      <span className="h-9 w-9 rounded-[13px] flex items-center justify-center shrink-0"
+        style={{ background: color + "22", color }}>
+        <AppIcon name={icon} size={18} />
+      </span>
+      <span className="flex-1 text-[15px] font-semibold">{label}</span>
+      <span className={`h-6 w-6 rounded-full flex items-center justify-center ${done ? "text-white" : "secondary border border-[var(--border)]"}`}
+        style={done ? { background: "#22c391" } : undefined}>
+        {done && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        )}
+      </span>
+    </div>
+  );
+}
+
+/* ───────────────────────── رشدِ مرکب ───────────────────────── */
+
+function Compound() {
+  return (
+    <section id="compound" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+      <Reveal className="rounded-ios-lg overflow-hidden">
+        <div className="card !rounded-ios-lg p-8 sm:p-12 grid lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <p className="text-ios-indigo font-bold text-[15px] mb-3">ریاضیِ سادهٔ پیشرفت</p>
+            <h2 className="text-[30px] sm:text-[40px] font-extrabold tracking-tight leading-tight">
+              یک‌درصد، هر روز،
+              <br />
+              تو را <span className="grad-text">۳۷ برابر</span> می‌کند.
+            </h2>
+            <p className="secondary text-[17px] leading-9 mt-5 max-w-md">
+              اگر هر روز فقط یک‌درصد بهتر شوی، در پایانِ سال تقریباً ۳۷ برابرِ امروزت می‌شوی.
+              همین یک‌درصدها، وقتی روی هم جمع می‌شوند، همه‌چیز را عوض می‌کنند.
+            </p>
+
+            <div className="mt-7 grid grid-cols-2 gap-3 max-w-md">
+              <StatBox color="#f56178" sign="−" label="۱٪ بدتر، هر روز" value="۰٫۰۳" foot="در پایانِ سال" />
+              <StatBox color="#22c391" sign="+" label="۱٪ بهتر، هر روز" value="۳۷٫۸" foot="در پایانِ سال" highlight />
+            </div>
+          </div>
+
+          <div className="relative">
+            <CompoundChart />
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function StatBox({ color, sign, label, value, foot, highlight }: {
+  color: string; sign: string; label: string; value: string; foot: string; highlight?: boolean;
+}) {
+  return (
+    <div className="rounded-[22px] p-4 border"
+      style={{
+        borderColor: highlight ? color + "55" : "var(--border)",
+        background: highlight ? color + "12" : "color-mix(in srgb, var(--card-solid) 45%, transparent)",
+      }}>
+      <p className="secondary text-[13px]">{label}</p>
+      <p className="text-[28px] font-extrabold tracking-tight mt-1" style={{ color }}>
+        <span className="text-[18px] align-middle">{sign}</span> ×{value}
+      </p>
+      <p className="secondary text-[12px] mt-0.5">{foot}</p>
+    </div>
+  );
+}
+
+/** منحنیِ رشدِ مرکب که با ورود به دید رسم می‌شود. */
+function CompoundChart() {
+  const [shown, setShown] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // y = 1.01^x روی بازهٔ 0..365، نگاشت‌شده در کادرِ 320×200
+  const W = 320, H = 200, pad = 8;
+  const pts: string[] = [];
+  const N = 60;
+  for (let i = 0; i <= N; i++) {
+    const x = (i / N) * 365;
+    const y = Math.pow(1.01, x); // 1..37.8
+    const px = pad + (i / N) * (W - pad * 2);
+    const py = H - pad - ((y - 1) / (37.8 - 1)) * (H - pad * 2);
+    pts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+  }
+  const line = pts.join(" ");
+  const area = `${pad},${H - pad} ${line} ${W - pad},${H - pad}`;
+
+  return (
+    <div ref={ref} className="mx-auto w-full max-w-[360px]">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto overflow-visible">
+        <defs>
+          <linearGradient id="cg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#6a8bff" />
+            <stop offset="0.55" stopColor="#8267f2" />
+            <stop offset="1" stopColor="#a96ff0" />
+          </linearGradient>
+          <linearGradient id="cgFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#8267f2" stopOpacity="0.28" />
+            <stop offset="1" stopColor="#8267f2" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((g) => (
+          <line key={g} x1={pad} x2={W - pad} y1={pad + g * (H - pad * 2)} y2={pad + g * (H - pad * 2)}
+            stroke="var(--sep)" strokeWidth="1" />
+        ))}
+        <polygon points={area} fill="url(#cgFill)"
+          style={{ opacity: shown ? 1 : 0, transition: "opacity 1.1s ease 0.3s" }} />
+        <polyline points={line} fill="none" stroke="url(#cg)" strokeWidth="3.5"
+          strokeLinecap="round" strokeLinejoin="round"
+          style={{
+            strokeDasharray: 1400,
+            strokeDashoffset: shown ? 0 : 1400,
+            transition: "stroke-dashoffset 1.6s cubic-bezier(0.16,1,0.3,1)",
+          }} />
+        <circle cx={W - pad} cy={pad} r="6" fill="#a96ff0"
+          style={{ opacity: shown ? 1 : 0, transition: "opacity 0.4s ease 1.5s" }} />
+      </svg>
+      <div className="flex items-center justify-between secondary text-[12px] px-2 mt-1">
+        <span>روزِ ۳۶۵</span>
+        <span>روزِ ۱</span>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── قابلیت‌ها ───────────────────────── */
+
+function Features() {
+  return (
+    <section id="features" className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16">
+      <SectionHead
+        eyebrow="یک اپ، به‌جای ده‌تا"
+        title="هر چیزی که برای رشد لازم داری"
+        sub="همه‌ی ابزارها زیرِ یک سقفِ آرام و یک‌دست — تا تمرکزت روی پیشرفت بماند، نه روی شلوغی."
+      />
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+        {FEATURES.map((f, i) => (
+          <Reveal key={f.title} delay={i * 60}>
+            <div className="card h-full p-5 hover:-translate-y-1 transition-transform duration-300">
+              <span className="h-12 w-12 rounded-[18px] flex items-center justify-center mb-4"
+                style={{ background: f.color + "1f", color: f.color }}>
+                <AppIcon name={f.icon} size={24} />
+              </span>
+              <h3 className="text-[18px] font-bold tracking-tight">{f.title}</h3>
+              <p className="secondary text-[14px] leading-7 mt-1.5">{f.desc}</p>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────── مربیِ هوشمند ───────────────────────── */
+
+function Coach() {
+  return (
+    <section id="coach" className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16">
+      <Reveal>
+        <div className="relative overflow-hidden rounded-ios-lg p-8 sm:p-12 text-white shadow-float"
+          style={{ backgroundImage: "linear-gradient(135deg,#5b76f0 0%,#8267f2 55%,#a96ff0 100%)" }}>
+          <div aria-hidden className="absolute -top-16 -left-16 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
+          <div aria-hidden className="absolute -bottom-20 right-1/4 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3.5 py-1.5 text-[13px] font-semibold">
+                <AppIcon name="sparkles" size={15} /> هوش مصنوعی
+              </span>
+              <h2 className="text-[30px] sm:text-[40px] font-extrabold tracking-tight leading-tight mt-5">
+                یک مربیِ همیشه‌همراه
+              </h2>
+              <p className="text-[17px] leading-9 mt-4 text-white/90 max-w-md">
+                «یک‌درصد» فقط ثبت‌کننده نیست؛ مثلِ یک مربیِ واقعی هر روز کنارت است — جلوی
+                پایت یک قدمِ بعدیِ روشن می‌گذارد و وقتی گیر کردی، باهات حرف می‌زند.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {COACH_POINTS.map((p) => (
+                <div key={p.text} className="flex items-center gap-3 rounded-[20px] bg-white/15 backdrop-blur-sm px-4 py-3.5 border border-white/15">
+                  <span className="h-10 w-10 rounded-[14px] bg-white/20 flex items-center justify-center shrink-0">
+                    <AppIcon name={p.icon} size={20} />
+                  </span>
+                  <span className="text-[15px] font-semibold leading-tight">{p.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ───────────────────────── چطور کار می‌کند ───────────────────────── */
+
+function Steps() {
+  return (
+    <section id="how" className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16">
+      <SectionHead
+        eyebrow="در سه قدم"
+        title="شروع کردن ساده است"
+        sub="بدونِ پیچیدگی. از همان دقیقهٔ اول، اولین رأیت را به آدمی که می‌خواهی بشوی بده."
+      />
+      <div className="grid md:grid-cols-3 gap-5 mt-10">
+        {STEPS.map((s, i) => (
+          <Reveal key={s.title} delay={i * 90}>
+            <div className="card h-full p-7 text-center">
+              <div className="relative mx-auto mb-5 grid place-items-center">
+                <span className="absolute h-20 w-20 rounded-full blur-2xl opacity-40" style={{ background: s.color }} />
+                <span className="relative h-16 w-16 rounded-[22px] flex items-center justify-center text-white shadow-card"
+                  style={{ background: `linear-gradient(135deg, ${s.color}, ${s.color}cc)` }}>
+                  <AppIcon name={s.icon} size={28} />
+                </span>
+              </div>
+              <span className="chip mb-3">قدمِ {["اول", "دوم", "سوم"][i]}</span>
+              <h3 className="text-[20px] font-bold tracking-tight">{s.title}</h3>
+              <p className="secondary text-[15px] leading-7 mt-2">{s.desc}</p>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────── حریمِ خصوصی ───────────────────────── */
+
+function Privacy() {
+  return (
+    <section className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16">
+      <Reveal>
+        <div className="card !rounded-ios-lg p-8 sm:p-10 flex flex-col sm:flex-row items-center gap-7 text-center sm:text-right">
+          <span className="h-20 w-20 rounded-[26px] shrink-0 flex items-center justify-center text-white shadow-glow"
+            style={{ background: "linear-gradient(135deg,#8267f2,#5b76f0)" }}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </span>
+          <div className="flex-1">
+            <h2 className="text-[24px] sm:text-[28px] font-extrabold tracking-tight">بی‌رمز، خصوصی و امن</h2>
+            <p className="secondary text-[16px] leading-8 mt-2">
+              ورود فقط با پسکی است — Face ID، Touch ID یا پینِ دستگاهت. هیچ رمزی برای فراموش‌کردن
+              یا لو‌رفتن وجود ندارد و داده‌هایت خصوصی روی حسابِ خودت می‌ماند.
+            </p>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ───────────────────────── دعوتِ پایانی ───────────────────────── */
+
+function FinalCTA() {
+  return (
+    <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-8 pb-20 sm:pb-28">
+      <Reveal>
+        <div className="relative overflow-hidden rounded-ios-lg p-10 sm:p-16 text-center text-white shadow-float"
+          style={{ backgroundImage: "linear-gradient(135deg,#6a8bff 0%,#8267f2 50%,#a96ff0 100%)" }}>
+          <div aria-hidden className="absolute -top-24 left-1/3 h-72 w-72 rounded-full bg-white/15 blur-3xl" />
+          <div className="relative">
+            <span className="inline-flex h-16 w-16 rounded-[24px] bg-white/15 items-center justify-center mb-6 animate-float">
+              <Logo size={34} />
+            </span>
+            <h2 className="text-[32px] sm:text-[46px] font-extrabold tracking-tight leading-tight">
+              امروز، اولین یک‌درصدت را بساز
+            </h2>
+            <p className="text-[17px] sm:text-[19px] text-white/90 mt-4 max-w-lg mx-auto leading-9">
+              بهترین روزِ شروع، همین امروز است. در کمتر از یک دقیقه واردِ مسیرِ شدنت شو.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/login"
+                className="rounded-[20px] bg-white text-ios-indigo font-bold text-[17px] px-7 py-3.5 shadow-lg active:scale-[0.97] transition flex items-center gap-2">
+                <AppIcon name="rocket" size={19} /> رایگان شروع کن
+              </Link>
+              <span className="text-white/85 text-[14px]">بدون کارت بانکی · ورود با پسکی</span>
+            </div>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ───────────────────────── فوتر ───────────────────────── */
+
+function Footer() {
+  return (
+    <footer className="relative border-t border-[var(--border)] glass">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-5">
+        <div className="flex items-center gap-2.5">
+          <span className="h-9 w-9 rounded-[14px] bg-gradient-to-br from-[#6a8bff] via-ios-indigo to-ios-purple flex items-center justify-center">
+            <Logo size={20} />
+          </span>
+          <div>
+            <p className="font-extrabold tracking-tight grad-text text-[18px] leading-none">{BRAND}</p>
+            <p className="secondary text-[12px] mt-1">{SLOGAN}</p>
+          </div>
+        </div>
+        <Link href="/login" className="text-ios-blue text-[15px] font-semibold active:opacity-60">
+          ورود / ثبت‌نام
+        </Link>
+      </div>
+      <p className="secondary text-center text-[12px] pb-8">
+        ساخته‌شده برای کسانی که می‌خواهند هر روز کمی بهتر شوند.
+      </p>
+    </footer>
+  );
+}
+
+/* ───────────────────────── اجزای کمکی ───────────────────────── */
+
+function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) {
+  return (
+    <Reveal className="text-center max-w-2xl mx-auto">
+      <p className="text-ios-indigo font-bold text-[15px] mb-2">{eyebrow}</p>
+      <h2 className="text-[30px] sm:text-[40px] font-extrabold tracking-tight leading-tight">{title}</h2>
+      <p className="secondary text-[17px] leading-8 mt-4">{sub}</p>
+    </Reveal>
+  );
+}
+
+/** نمایان‌شدنِ نرم هنگامِ ورود به دید. */
+function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setShown(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: shown ? 1 : 0,
+        transform: shown ? "none" : "translateY(22px)",
+        transition: `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** هاله‌های گرادیانیِ پس‌زمینه برای عمقِ رؤیایی. */
+function Aurora() {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="absolute -top-32 -right-24 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 animate-float"
+        style={{ background: "linear-gradient(135deg,#8267f2,#6a8bff)" }} />
+      <div className="absolute top-1/2 -left-32 h-[24rem] w-[24rem] rounded-full blur-3xl opacity-30 animate-float"
+        style={{ background: "linear-gradient(135deg,#2cb8cf,#6a8bff)", animationDelay: "-2.5s" }} />
+      <div className="absolute bottom-0 right-1/4 h-[26rem] w-[26rem] rounded-full blur-3xl opacity-25 animate-float"
+        style={{ background: "linear-gradient(135deg,#fb7fa0,#fb9a5b)", animationDelay: "-4.5s" }} />
+    </div>
+  );
+}
