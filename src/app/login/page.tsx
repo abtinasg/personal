@@ -8,10 +8,10 @@ import {
   browserSupportsWebAuthn,
 } from "@simplewebauthn/browser";
 import { apiSend } from "@/lib/client";
-import { Button, Spinner } from "@/components/ui";
+import { Button, Spinner, Segmented } from "@/components/ui";
 import { Logo } from "@/components/icons";
 import { AppIcon } from "@/components/AppIcon";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Lock } from "lucide-react";
 
 const APP = process.env.NEXT_PUBLIC_APP_NAME || "یک‌درصد";
 const ONBOARD_KEY = "zendegi:onboarded";
@@ -210,30 +210,18 @@ export default function LoginPage() {
           <div className="card absolute inset-x-6 -bottom-2.5 top-3 -z-10 opacity-60" aria-hidden />
           <div className="float-card relative p-6 space-y-4">
             {/* تب‌های روش احراز */}
-            <div className="flex gap-2 mb-2">
-              <button
-                onClick={() => { setAuthMethod("passkey"); setErr(""); setPassword(""); }}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
-                  authMethod === "passkey"
-                    ? "bg-ios-indigo text-white"
-                    : "bg-[var(--card-bg)] text-[var(--secondary)]"
-                }`}
-                disabled={busy}
-              >
-                پسکی
-              </button>
-              <button
-                onClick={() => { setAuthMethod("password"); setErr(""); }}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
-                  authMethod === "password"
-                    ? "bg-ios-indigo text-white"
-                    : "bg-[var(--card-bg)] text-[var(--secondary)]"
-                }`}
-                disabled={busy}
-              >
-                رمز عبور
-              </button>
-            </div>
+            <Segmented
+              value={authMethod}
+              onChange={(v) => {
+                setAuthMethod(v);
+                setErr("");
+                if (v === "passkey") setPassword("");
+              }}
+              options={[
+                { value: "passkey", label: "پسکی" },
+                { value: "password", label: "رمز عبور" },
+              ]}
+            />
 
             <input
               className="ios-input text-center"
@@ -273,29 +261,21 @@ export default function LoginPage() {
               {busy ? (
                 <Spinner />
               ) : authMethod === "password" ? (
-                isLogin ? (
-                  <>ورود</>
-                ) : (
-                  <>ساخت حساب</>
-                )
+                <Lock size={19} />
               ) : isLogin ? (
                 <KeyRound size={19} />
               ) : (
                 <AppIcon name="sparkles" size={19} />
               )}
-              {busy ? (
-                ""
-              ) : authMethod === "password" ? (
-                isLogin ? (
-                  "ورود با رمز عبور"
-                ) : (
-                  "ساخت حساب با رمز"
-                )
-              ) : isLogin ? (
-                "ورود با پسکی"
-              ) : (
-                "ساخت حساب با پسکی"
-              )}
+              {busy
+                ? ""
+                : authMethod === "password"
+                ? isLogin
+                  ? "ورود با رمز عبور"
+                  : "ساخت حساب با رمز"
+                : isLogin
+                ? "ورود با پسکی"
+                : "ساخت حساب با پسکی"}
             </Button>
 
             {err && <p className="text-ios-red text-[14px] text-center">{err}</p>}
