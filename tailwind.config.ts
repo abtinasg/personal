@@ -6,6 +6,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-vazir)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-vazir)", "serif"],
       },
       colors: {
         // پالت رؤیایی و پاستلی — سطوح هواگونه و رنگ‌های نرمِ گرادیانی

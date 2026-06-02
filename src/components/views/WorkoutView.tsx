@@ -181,10 +181,10 @@ export default function WorkoutView() {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         prefs={prefs}
-        onSaved={async (autoGen) => {
+        onSaved={async () => {
           setEditOpen(false);
           await load();
-          if (autoGen) await generate();
+          await generate();
         }}
       />
     </div>
@@ -312,6 +312,37 @@ const DAY_OPTS = [
   { value: "6", label: "۶" },
 ];
 
+function ChipGroup<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            className={`rounded-full px-4 py-2 text-[14px] font-semibold transition active:scale-[0.97] ${
+              active ? "text-white shadow-soft" : "secondary bg-[var(--label)]/[0.05]"
+            }`}
+            style={active ? { backgroundImage: HERO_GRADIENT } : undefined}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PrefsSheet({
   open,
   onClose,
@@ -321,7 +352,7 @@ function PrefsSheet({
   open: boolean;
   onClose: () => void;
   prefs: Prefs | null;
-  onSaved: (autoGenerate: boolean) => void | Promise<void>;
+  onSaved: () => void | Promise<void>;
 }) {
   const [goal, setGoal] = useState<FitnessGoal>("general");
   const [level, setLevel] = useState<FitnessLevel>("beginner");
@@ -361,7 +392,7 @@ function PrefsSheet({
         workout_equipment: equipment.trim() || null,
         workout_limits: limits.trim() || null,
       });
-      await onSaved(isFirstSetup);
+      await onSaved();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "خطا در ذخیره.");
     } finally {
@@ -373,7 +404,7 @@ function PrefsSheet({
     <Sheet open={open} onClose={onClose} title="هدف و وضعیتِ ورزشی">
       <div className="space-y-4 pb-2">
         <Field label="هدفت چیه؟">
-          <Segmented value={goal} onChange={setGoal} options={GOAL_OPTS} />
+          <ChipGroup value={goal} onChange={setGoal} options={GOAL_OPTS} />
         </Field>
         <Field label="سطحت کجاست؟">
           <Segmented value={level} onChange={setLevel} options={LEVEL_OPTS} />
@@ -398,7 +429,7 @@ function PrefsSheet({
 
         <Button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2">
           {saving && <Spinner />}
-          {isFirstSetup ? "ذخیره و ساختِ برنامه" : "ذخیره"}
+          {isFirstSetup ? "ذخیره و ساختِ برنامه" : "ذخیره و به‌روزرسانیِ برنامه"}
         </Button>
       </div>
     </Sheet>
