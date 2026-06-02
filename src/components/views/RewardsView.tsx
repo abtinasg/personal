@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa } from "@/lib/format";
 import type { Reward } from "@/lib/types";
-import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle } from "@/components/ui";
+import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon } from "@/components/AppIcon";
 
@@ -30,6 +30,7 @@ export default function RewardsView() {
   const [edit, setEdit] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [justClaimed, setJustClaimed] = useState<Reward | null>(null);
+  const { confirm, dialog } = useConfirm();
 
   const load = useCallback(async () => {
     const { streak, rewards } = await apiGet<{ streak: number; rewards: Reward[] }>("/api/rewards");
@@ -56,7 +57,7 @@ export default function RewardsView() {
   }
 
   async function remove(r: Reward) {
-    if (!confirm(`«${r.title}» حذف شود؟`)) return;
+    if (!(await confirm({ title: "حذف جایزه", message: `«${r.title}» حذف شود؟`, confirmLabel: "حذف", danger: true }))) return;
     setRewards((rs) => rs.filter((x) => x.id !== r.id));
     await apiSend(`/api/rewards?id=${r.id}`, "DELETE");
   }
@@ -176,6 +177,7 @@ export default function RewardsView() {
       )}
 
       <AddRewardSheet open={open} onClose={() => setOpen(false)} onAdded={load} />
+      {dialog}
     </div>
   );
 }

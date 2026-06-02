@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa, todayISO, daysAgoISO } from "@/lib/format";
 import type { Habit, HabitLog, Identity } from "@/lib/types";
-import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, SectionTitle } from "@/components/ui";
+import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon, HABIT_ICONS } from "@/components/AppIcon";
 
@@ -17,6 +17,7 @@ export default function HabitsView() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(false);
+  const { confirm, dialog } = useConfirm();
   const today = todayISO();
   const yesterday = daysAgoISO(1);
 
@@ -58,7 +59,7 @@ export default function HabitsView() {
   }
 
   async function remove(h: Habit) {
-    if (!confirm(`«${h.name}» حذف شود؟`)) return;
+    if (!(await confirm({ title: "حذف عادت", message: `«${h.name}» حذف شود؟ تاریخچه‌اش هم پاک می‌شود.`, confirmLabel: "حذف", danger: true }))) return;
     setHabits((hs) => hs.filter((x) => x.id !== h.id));
     await apiSend(`/api/habits?id=${h.id}`, "DELETE");
   }
@@ -226,6 +227,7 @@ export default function HabitsView() {
       )}
 
       <AddHabitSheet open={open} onClose={() => setOpen(false)} onAdded={load} identities={identities} />
+      {dialog}
     </div>
   );
 }

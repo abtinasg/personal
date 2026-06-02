@@ -471,7 +471,15 @@ function AddMealSheet({ open, onClose, date, onAdded }: { open: boolean; onClose
 
 export function AddButton({ onClick }: { onClick: () => void }) {
   return (
-    <button onClick={onClick} className="h-9 w-9 rounded-full bg-ios-blue text-white text-[22px] leading-none flex items-center justify-center shadow-card active:scale-90 transition">
+    <button
+      onClick={onClick}
+      aria-label="افزودن"
+      className="h-9 w-9 rounded-full text-white text-[22px] leading-none flex items-center justify-center active:scale-90 transition"
+      style={{
+        backgroundImage: "linear-gradient(135deg,#6a8bff,#8267f2)",
+        boxShadow: "0 8px 20px -6px rgba(120,110,250,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
+      }}
+    >
       +
     </button>
   );

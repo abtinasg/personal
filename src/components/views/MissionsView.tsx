@@ -5,7 +5,7 @@ import { apiGet, apiSend } from "@/lib/client";
 import { fa, todayISO, jDateShort } from "@/lib/format";
 import type { Habit, HabitLog, Mission } from "@/lib/types";
 import type { MissionPlan } from "@/app/api/missions/generate/route";
-import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle } from "@/components/ui";
+import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 
 function daysLeft(end_on: string | null): number | null {
@@ -22,6 +22,7 @@ export default function MissionsView() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(false);
+  const { confirm, dialog } = useConfirm();
   const today = todayISO();
 
   const load = useCallback(async () => {
@@ -64,7 +65,7 @@ export default function MissionsView() {
   }
 
   async function remove(m: Mission) {
-    if (!confirm(`ماموریت «${m.title}» حذف شود؟`)) return;
+    if (!(await confirm({ title: "حذف ماموریت", message: `«${m.title}» برای همیشه حذف شود؟`, confirmLabel: "حذف", danger: true }))) return;
     setMissions((ms) => ms.filter((x) => x.id !== m.id));
     await apiSend(`/api/missions?id=${m.id}`, "DELETE");
   }
@@ -252,6 +253,7 @@ export default function MissionsView() {
       )}
 
       <MissionCreatorSheet open={open} onClose={() => setOpen(false)} onDone={load} />
+      {dialog}
     </div>
   );
 }

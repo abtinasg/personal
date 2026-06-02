@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa } from "@/lib/format";
 import { type Identity, identityLevel } from "@/lib/types";
-import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle } from "@/components/ui";
+import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon, IDENTITY_ICONS } from "@/components/AppIcon";
 
@@ -15,6 +15,7 @@ export default function IdentitiesView() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const load = useCallback(async () => {
     const { identities } = await apiGet<{ identities: Identity[] }>("/api/identities");
@@ -27,7 +28,7 @@ export default function IdentitiesView() {
   }, [load]);
 
   async function remove(it: Identity) {
-    if (!confirm(`«${it.name}» حذف شود؟ عادت‌های مرتبط حذف نمی‌شوند.`)) return;
+    if (!(await confirm({ title: "حذف هویت", message: `«${it.name}» حذف شود؟ عادت‌های مرتبط حذف نمی‌شوند.`, confirmLabel: "حذف", danger: true }))) return;
     setItems((xs) => xs.filter((x) => x.id !== it.id));
     await apiSend(`/api/identities?id=${it.id}`, "DELETE");
   }
@@ -107,6 +108,7 @@ export default function IdentitiesView() {
       )}
 
       <AddIdentitySheet open={open} onClose={() => setOpen(false)} onAdded={load} />
+      {dialog}
     </div>
   );
 }

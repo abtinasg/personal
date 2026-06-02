@@ -8,13 +8,14 @@
   /* سطوحِ هواگونه و رؤیایی */
   --bg: #eceefb;
   --bg2: #e7ecfb;
-  --card: rgba(255, 255, 255, 0.78);
+  --card: rgba(255, 255, 255, 0.85);
   --card-solid: #ffffff;
   --card-2: rgba(255, 255, 255, 0.55);
-  --label: #262a40;
-  --secondary: #7b80a0;
+  --label: #232740;
+  --secondary: #5f6486;
   --sep: rgba(70, 60, 150, 0.1);
   --border: rgba(255, 255, 255, 0.7);
+  --input-border: rgba(70, 60, 150, 0.14);
   --hi: rgba(255, 255, 255, 0.9); /* هایلایتِ نور از بالا-چپ (نئومورفیسم) */
   --ring: rgba(91, 118, 240, 0.45);
 
@@ -38,9 +39,10 @@
     --card-solid: #1a1c2e;
     --card-2: rgba(44, 46, 72, 0.5);
     --label: #f0f1fb;
-    --secondary: #9b9fc0;
+    --secondary: #a6aacb;
     --sep: rgba(255, 255, 255, 0.08);
     --border: rgba(255, 255, 255, 0.08);
+    --input-border: rgba(255, 255, 255, 0.14);
     --hi: rgba(255, 255, 255, 0.06);
     --ring: rgba(130, 103, 242, 0.5);
     --shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 24px 60px -22px rgba(0, 0, 0, 0.75);
@@ -101,8 +103,8 @@ body {
   .ios-input {
     @apply w-full rounded-[20px] px-4 py-3.5 text-[17px] outline-none transition
       placeholder:text-[var(--secondary)];
-    background: color-mix(in srgb, var(--card-solid) 55%, transparent);
-    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--card-solid) 72%, transparent);
+    border: 1px solid var(--input-border);
     box-shadow: inset 0 1px 0 var(--hi);
   }
   .ios-input:focus {
@@ -119,8 +121,8 @@ body {
   }
   .ios-btn-ghost {
     @apply ios-btn text-[var(--label)];
-    background: color-mix(in srgb, var(--card-solid) 50%, transparent);
-    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--card-solid) 60%, transparent);
+    border: 1px solid var(--input-border);
     box-shadow: inset 0 1px 0 var(--hi);
   }
   .secondary {

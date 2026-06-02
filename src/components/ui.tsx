@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
 
 export function Card({
@@ -162,6 +162,110 @@ export function Spinner({ className = "" }: { className?: string }) {
       className={`inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent ${className}`}
     />
   );
+}
+
+/** دیالوگِ تأییدِ اپل‌استایل — جایگزینِ confirm() نیتیو. */
+export function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmLabel = "تأیید",
+  cancelLabel = "انصراف",
+  danger = false,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-8">
+      <div
+        className="absolute inset-0 bg-[#1a1430]/35 backdrop-blur-md animate-[fade-up_0.2s_ease]"
+        onClick={onCancel}
+      />
+      <div className="glass-strong relative w-full max-w-[300px] rounded-[30px] shadow-float border border-[var(--border)] p-6 text-center animate-scale-in">
+        <h3 className="text-[18px] font-extrabold leading-snug">{title}</h3>
+        {message && <p className="secondary text-[14px] leading-7 mt-2">{message}</p>}
+        <div className="flex gap-2.5 mt-5">
+          <button onClick={onCancel} className="flex-1 ios-btn-ghost !py-3 !text-[16px]">
+            {cancelLabel}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 !py-3 !text-[16px] ${danger ? "ios-btn text-white" : "ios-btn-primary"}`}
+            style={
+              danger
+                ? {
+                    backgroundImage: "linear-gradient(135deg,#fb7a8f,#f5536f)",
+                    boxShadow: "0 12px 26px -10px rgba(245,97,120,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
+                  }
+                : undefined
+            }
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export type ConfirmOptions = {
+  title: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+};
+
+/** هوکِ تأیید: یک confirm پرامیس‌محور می‌دهد و المانِ دیالوگ را برای رندر. */
+export function useConfirm() {
+  const [opts, setOpts] = useState<ConfirmOptions | null>(null);
+  const resolver = useRef<((v: boolean) => void) | null>(null);
+
+  const confirm = useCallback((o: ConfirmOptions) => {
+    return new Promise<boolean>((resolve) => {
+      resolver.current = resolve;
+      setOpts(o);
+    });
+  }, []);
+
+  const settle = useCallback((v: boolean) => {
+    resolver.current?.(v);
+    resolver.current = null;
+    setOpts(null);
+  }, []);
+
+  const dialog = (
+    <ConfirmDialog
+      open={opts !== null}
+      title={opts?.title ?? ""}
+      message={opts?.message}
+      confirmLabel={opts?.confirmLabel}
+      cancelLabel={opts?.cancelLabel}
+      danger={opts?.danger}
+      onConfirm={() => settle(true)}
+      onCancel={() => settle(false)}
+    />
+  );
+
+  return { confirm, dialog };
 }
 
 export function Segmented<T extends string>({

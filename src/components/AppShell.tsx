@@ -145,7 +145,7 @@ export default function AppShell({
                   }`}
                 >
                   <Icon name={t.icon} active={active} />
-                  <span className={`text-[10px] ${active ? "font-bold" : "font-medium"}`}>{t.label}</span>
+                  <span className={`text-[11px] ${active ? "font-bold" : "font-medium"}`}>{t.label}</span>
                 </button>
               );
             })}
