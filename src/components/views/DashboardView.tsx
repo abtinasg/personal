@@ -50,15 +50,6 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
 
   useEffect(() => { load(); }, [load]);
 
-  const [briefing, setBriefing] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    apiGet<{ briefing: string }>("/api/coach/briefing")
-      .then((r) => { if (alive) setBriefing(r.briefing); })
-      .catch(() => { /* بریفینگ اختیاریه */ });
-    return () => { alive = false; };
-  }, []);
-
   async function setMood(score: number) {
     setData((d) => d && { ...d, moods: upsertMood(d.moods, today, score) });
     await apiSend("/api/moods", "POST", { score, date: today });
@@ -87,14 +78,6 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
 
   return (
     <div className="space-y-3">
-      {/* بریفینگ مربی */}
-      {briefing && (
-        <Card className="flex gap-3 mt-2 items-start">
-          <span className="text-ios-blue mt-0.5 shrink-0"><AppIcon name="compass" size={22} /></span>
-          <p className="text-[15px] leading-7 flex-1">{briefing}</p>
-        </Card>
-      )}
-
       {/* ماموریت فعال */}
       {activeMission ? (() => {
         const m = activeMission;
@@ -236,13 +219,13 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
 
         <Card onClick={() => onGoto("budget")} className="!p-4">
           <div className="flex items-center gap-3">
-            <div className="h-[62px] w-[62px] rounded-full bg-ios-blue/10 text-ios-blue flex items-center justify-center shrink-0"><AppIcon name="wallet" size={24} /></div>
+            <div className="h-[62px] w-[62px] rounded-full bg-ios-green/10 text-ios-green flex items-center justify-center shrink-0"><AppIcon name="invest" size={24} /></div>
             <div className="min-w-0">
-              <p className="secondary text-[13px]">هزینه‌ی ماه</p>
-              <p className="font-extrabold text-[17px] leading-tight truncate">{fa(monthExpense)}</p>
-              <p className={`text-[11px] ${budget && monthExpense > budget ? "text-ios-red" : "secondary"}`}>
-                {budget ? `از ${fa(budget)}` : `درآمد ${fa(monthIncome)}`}
+              <p className="secondary text-[13px]">سرمایه‌ی ماه</p>
+              <p className={`font-extrabold text-[17px] leading-tight truncate ${monthIncome - monthExpense < 0 ? "text-ios-red" : "text-ios-green"}`}>
+                {fa(monthIncome - monthExpense)}
               </p>
+              <p className="text-[11px] secondary">مازادِ قابلِ سرمایه‌گذاری</p>
             </div>
           </div>
         </Card>

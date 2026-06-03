@@ -16,6 +16,15 @@ export function money(n: number, currency = "تومان"): string {
   return `${fa(Math.round(n))} ${currency}`;
 }
 
+/** عددِ بزرگ را فشرده نشان می‌دهد: «۱۱٫۷ میلیارد»، «۱۳۰ میلیون». */
+export function faShort(n: number): string {
+  if (n == null || isNaN(n)) return faDigits(0);
+  const trim = (v: number) => faDigits(v.toFixed(1).replace(/\.0$/, ""));
+  if (n >= 1e9) return `${trim(n / 1e9)} میلیارد`;
+  if (n >= 1e6) return `${trim(n / 1e6)} میلیون`;
+  return fa(n);
+}
+
 /** تاریخ امروز به‌صورت YYYY-MM-DD در منطقه‌ی زمانی محلی. */
 export function todayISO(d = new Date()): string {
   const off = d.getTimezoneOffset();

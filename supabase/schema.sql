@@ -251,3 +251,24 @@ create table if not exists public.workout_plans (
 create index if not exists workout_plans_user_idx on public.workout_plans(user_id, plan_on);
 
 alter table public.workout_plans enable row level security;
+
+-- ============================================================
+--  سرمایه‌گذاری و هدف خرید  (همتای supabase/migrations/006)
+-- ============================================================
+
+create table if not exists public.purchase_goals (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references public.users(id) on delete cascade,
+  title         text not null,
+  emoji         text not null default 'target',
+  denom         text not null default 'toman',   -- toman | usd | gold | coin
+  target_native numeric not null default 0,
+  saved_toman   numeric not null default 0,
+  target_date   date,
+  note          text,
+  status        text not null default 'active',  -- active | reached | archived
+  created_at    timestamptz not null default now()
+);
+create index if not exists purchase_goals_user_idx on public.purchase_goals(user_id, status);
+
+alter table public.purchase_goals enable row level security;
