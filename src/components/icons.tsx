@@ -77,6 +77,23 @@ export function Icon({ name, active }: { name: string; active?: boolean }) {
           <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
         </svg>
       );
+    case "grow":
+      // جوانه‌ی رو به بالا — نمادِ رشد
+      return (
+        <svg {...common}>
+          <path d="M12 21v-9" />
+          <path d="M12 12c0-3 2.2-5.2 5.5-5.2C17.5 9.8 15.3 12 12 12Z" />
+          <path d="M12 14.5c0-2.6-2-4.6-5-4.6 0 2.6 2 4.6 5 4.6Z" />
+        </svg>
+      );
+    case "coach":
+      // قطب‌نما — مربیِ راهنما
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="m15.2 8.8-2 4.4-4.4 2 2-4.4 4.4-2Z" />
+        </svg>
+      );
     default:
       return null;
   }

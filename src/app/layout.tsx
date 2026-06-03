@@ -23,6 +23,14 @@ export const metadata: Metadata = {
   description:
     "یک‌درصد: هویت‌ات را بساز و هر روز یک‌درصد بهتر شو. ماموریت‌ها، عادت‌های اتمی، کالری با هوش مصنوعی، بودجه، سلامتی و یک مربیِ همیشه‌همراه — ورود بی‌رمز با پسکی.",
   appleWebApp: { capable: true, statusBarStyle: "default", title: appName },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,8 +40,8 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // اجازه‌ی زوم برای دسترس‌پذیری (پیش‌تر zoom غیرفعال بود)
+  maximumScale: 5,
 };
 
 export default function RootLayout({

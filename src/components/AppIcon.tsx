@@ -9,6 +9,7 @@ import {
   Scale, Compass, Rocket, Trophy, Flag, Repeat, Vote, Wallet, Banknote,
   BarChart3, Lightbulb, Calculator, Hourglass, Clock, Feather, Sparkles,
   AlertTriangle, Circle,
+  Download, Smartphone, Share, Plus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -79,6 +80,10 @@ const REGISTRY: Record<string, LucideIcon> = {
   cue: Clock,
   feather: Feather,
   alert: AlertTriangle,
+  download: Download,
+  phone: Smartphone,
+  share: Share,
+  plus: Plus,
 };
 
 /** نگاشت سازگاری: داده‌های قدیمی که هنوز ایموجی ذخیره شده‌اند. */
