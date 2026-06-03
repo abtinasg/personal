@@ -47,6 +47,32 @@ export type Transaction = {
   created_at: string;
 };
 
+/** واحدِ هدفِ خرید — هدف را برحسبِ دارایی نگه می‌داریم تا تورم بی‌اثرش نکند. */
+export type GoalDenom = "toman" | "usd" | "gold" | "coin";
+
+export type PurchaseGoal = {
+  id: string;
+  title: string;
+  emoji: string;
+  denom: GoalDenom;
+  target_native: number;
+  saved_toman: number;
+  target_date: string | null;
+  note: string | null;
+  status: "active" | "reached" | "archived";
+  created_at: string;
+};
+
+/** نرخِ بازارِ آزاد (به تومان) — برای آموزشِ «فکرکردن به دارایی به‌جای تومان». */
+export type MarketRates = {
+  usd: number | null;      // دلار آمریکا (تومان)
+  gold: number | null;     // هر گرم طلای ۱۸ عیار (تومان)
+  coin: number | null;     // سکه‌ی امامی (تومان)
+  btc: number | null;      // بیت‌کوین (تومان)
+  updated_at: string | null;
+  source: string;          // "live" | "fallback" | "manual"
+};
+
 export type HealthMetric = {
   id: string;
   kind: "weight" | "water" | "sleep" | "steps";

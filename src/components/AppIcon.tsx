@@ -10,6 +10,7 @@ import {
   BarChart3, Lightbulb, Calculator, Hourglass, Clock, Feather, Sparkles,
   AlertTriangle, Circle,
   Download, Smartphone, Share, Plus,
+  Coins, DollarSign, CircleDollarSign, TrendingUp, Bitcoin, Landmark, Gem,
   type LucideIcon,
 } from "lucide-react";
 
@@ -84,6 +85,14 @@ const REGISTRY: Record<string, LucideIcon> = {
   phone: Smartphone,
   share: Share,
   plus: Plus,
+  // — سرمایه‌گذاری —
+  invest: TrendingUp,
+  gold: Coins,
+  gem: Gem,
+  dollar: DollarSign,
+  coin: CircleDollarSign,
+  bitcoin: Bitcoin,
+  estate: Landmark,
 };
 
 /** نگاشت سازگاری: داده‌های قدیمی که هنوز ایموجی ذخیره شده‌اند. */
