@@ -4,6 +4,16 @@ import { todayISO } from "@/lib/format";
 
 type DB = ReturnType<typeof getServiceClient>;
 
+type MealEstimate = {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+  is_food: boolean;
+};
+
 export type ParsedItem = {
   type: "meal" | "expense" | "income" | "water" | "weight" | "sleep" | "steps";
   label?: string;
@@ -137,4 +147,74 @@ export async function captureFromText(db: DB, uid: string, raw: string): Promise
   }
 
   return { saved, note: parsed?.note, errors };
+}
+
+/**
+ * عکسِ یک غذا را با مدلِ vision تشخیص می‌دهد، کالری/درشت‌مغذی‌ها را تخمین می‌زند
+ * و به‌عنوان یک وعده برای امروزِ کاربر ثبت می‌کند.
+ */
+export async function captureMealFromImage(
+  db: DB,
+  uid: string,
+  imageDataUrl: string,
+  caption = ""
+): Promise<CaptureResult> {
+  const url = String(imageDataUrl || "").trim();
+  if (!url.startsWith("data:image/") && !url.startsWith("http")) {
+    return { saved: [], errors: ["عکس معتبر نبود."] };
+  }
+
+  const today = todayISO();
+  const extra = caption.trim() ? `\n\nتوضیحِ کاربر درباره‌ی عکس: «${caption.trim()}». اگه مقدار/پرس رو گفته، لحاظش کن.` : "";
+
+  let est: MealEstimate;
+  try {
+    est = await aiJSON<MealEstimate>(
+      [
+        {
+          role: "system",
+          content:
+            "تو یک متخصصِ تغذیه‌ای که از روی عکسِ غذا، نوعِ غذا و کالری و درشت‌مغذی‌هاش رو تخمین می‌زنی. " +
+            "به عکسِ ارسالی نگاه کن، غذا(ها)ی داخلش رو تشخیص بده و مجموعِ کالری و گرمِ پروتئین/کربوهیدرات/چربیِ کلِ بشقاب رو تخمین بزن. " +
+            "اگه اندازه نامشخصه، یک پرسِ معمولی فرض کن. اعداد واقع‌بینانه و صحیح (integer). نوعِ وعده رو از روی نوعِ غذا حدس بزن (نامشخص => snack). " +
+            'فقط یک JSON برگردون با این کلیدها: ' +
+            '{"is_food": boolean, "name": string, "calories": number, "protein": number, "carbs": number, "fat": number, "meal_type": "breakfast"|"lunch"|"dinner"|"snack"}. ' +
+            "name یک نامِ کوتاه و تمیزِ فارسی برای غذای داخلِ عکس باشه. " +
+            "اگه عکس اصلاً غذا/خوراکی نیست، is_food رو false بذار و بقیه‌ی فیلدها رو صفر/خالی." + extra,
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "این عکسِ غذای منه. تشخیص بده چیه و کالری/درشت‌مغذی‌هاش رو تخمین بزن." },
+            { type: "image_url", image_url: { url } },
+          ],
+        },
+      ],
+      { temperature: 0.2, maxTokens: 400 }
+    );
+  } catch (e) {
+    return { saved: [], errors: [e instanceof Error ? e.message : "نتونستم عکس رو تحلیل کنم."] };
+  }
+
+  if (est.is_food === false || !String(est.name || "").trim()) {
+    return { saved: [], note: "تو این عکس غذایی پیدا نکردم. اگه می‌خوای ثبتش کنم، یه عکسِ واضح‌تر از غذا بفرست یا اسمش رو بنویس." , errors: [] };
+  }
+
+  const name = String(est.name).trim().slice(0, 80);
+  const meal_type = MEAL_TYPES.includes(est.meal_type as string) ? est.meal_type : "snack";
+  const calories = Math.max(0, Math.round(Number(est.calories) || 0));
+
+  const { error } = await db.from("meals").insert({
+    user_id: uid,
+    name,
+    calories,
+    protein: Math.max(0, Math.round(Number(est.protein) || 0)),
+    carbs: Math.max(0, Math.round(Number(est.carbs) || 0)),
+    fat: Math.max(0, Math.round(Number(est.fat) || 0)),
+    meal_type,
+    eaten_on: today,
+  });
+  if (error) return { saved: [], errors: [error.message] };
+
+  return { saved: [{ type: "meal", label: `${name} — حدود ${calories} کالری` }], errors: [] };
 }

@@ -9,7 +9,9 @@ import type { MarketRates } from "@/lib/types";
  * در صورتِ شکستِ همه، آخرین نرخِ موفق برمی‌گردد؛ اگر هیچ‌وقت موفق نشده باشیم null.
  */
 
-const TGJU = "https://call.tgju.org/ajax.json";
+// جدولِ خلاصه‌ی هر نماد در tgju؛ این میزبان از سرورِ ابری قابلِ‌دسترس است
+// (برخلافِ call.tgju.org که اغلب از بیرونِ ایران resolve نمی‌شود).
+const TGJU_BASE = "https://api.tgju.org/v1/market/indicator/summary-table-data";
 const COINGECKO = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
 const GOLD_API = "https://api.gold-api.com/price/XAU"; // دلار به ازای هر اونسِ طلای خالص
 const FOREX_API = "https://open.er-api.com/v6/latest/USD"; // نرخِ بازارِ دلار (IRR)
@@ -42,22 +44,36 @@ async function getJSON(url: string, timeoutMs = 6000): Promise<any> {
   return res.json();
 }
 
-/** منبعِ اولِ ایرانی (کامل). */
-async function fromTgju(): Promise<MarketRates | null> {
+/**
+ * آخرین قیمتِ «پایانیِ» یک نماد از جدولِ خلاصه‌ی tgju.
+ * هر سطر: [بازگشایی، کمترین، بیشترین، پایانی، تغییر، درصد، تاریخِ میلادی، تاریخِ شمسی].
+ * قیمتِ ارز/طلا/سکه به ریال است؛ بیت‌کوین به دلار.
+ */
+async function tgjuClose(symbol: string): Promise<number | null> {
   try {
-    const data = await getJSON(TGJU);
-    const cur = data?.current ?? {};
-    const dollarRl = num(cur?.price_dollar_rl?.p);
-    const usd = dollarRl != null ? Math.round(dollarRl / 10) : null;
-    const gold = num(cur?.geram18?.p);
-    const coin = num(cur?.sekee?.p);
-    const btcUsd = num(cur?.["crypto-bitcoin"]?.p);
-    const btc = btcUsd != null && usd != null ? Math.round(btcUsd * usd) : null;
-    if (!usd && !gold && !coin) return null;
-    return { usd, gold, coin, btc, updated_at: new Date().toISOString(), source: "live" };
+    const data = await getJSON(`${TGJU_BASE}/${symbol}`);
+    const row = Array.isArray(data?.data) ? data.data[0] : null;
+    return num(row?.[3]);
   } catch {
     return null;
   }
+}
+
+/** منبعِ اولِ ایرانی (کامل) — نرخِ بازارِ آزاد. */
+async function fromTgju(): Promise<MarketRates | null> {
+  const [dollarRl, gold18Rl, coinRl, btcUsd] = await Promise.all([
+    tgjuClose("price_dollar_rl"),
+    tgjuClose("geram18"),
+    tgjuClose("sekee"),
+    tgjuClose("crypto-bitcoin"),
+  ]);
+  // ریال به تومان
+  const usd = dollarRl != null ? Math.round(dollarRl / 10) : null;
+  const gold = gold18Rl != null ? Math.round(gold18Rl / 10) : null;
+  const coin = coinRl != null ? Math.round(coinRl / 10) : null;
+  const btc = btcUsd != null && usd != null ? Math.round(btcUsd * usd) : null;
+  if (!usd && !gold && !coin) return null;
+  return { usd, gold, coin, btc, updated_at: new Date().toISOString(), source: "live" };
 }
 
 /** fallbackِ بین‌المللی — دلار/طلا/بیت‌کوین را از منابعِ جهانی می‌سازد. */

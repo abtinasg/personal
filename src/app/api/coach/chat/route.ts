@@ -1,7 +1,7 @@
 import { authed, ok, bad } from "@/lib/api";
 import { aiText, type AIMessage } from "@/lib/openrouter";
 import { userSnapshot } from "@/lib/coach";
-import { captureFromText, looksLikeIntake, type SavedItem } from "@/lib/capture";
+import { captureFromText, captureMealFromImage, looksLikeIntake, type SavedItem } from "@/lib/capture";
 
 export const runtime = "nodejs";
 
@@ -22,9 +22,18 @@ export async function POST(req: Request) {
   }
 
   // اگه کاربر داره چیزی که خورده/خرج‌کرده/اندازه‌گرفته رو می‌گه، همین‌جا ثبتش کن.
-  const lastUser = history[history.length - 1].content;
+  const lastUser = history[history.length - 1].content as string;
+  const image = typeof b.image === "string" && b.image.trim() ? b.image.trim() : "";
   let saved: SavedItem[] = [];
-  if (looksLikeIntake(lastUser)) {
+  let captureNote = "";
+  if (image) {
+    // عکسِ غذا: با مدلِ vision تشخیص بده و ثبتش کن.
+    const res = await captureMealFromImage(a.db, a.uid, image, lastUser).catch(() => null);
+    if (res) {
+      saved = res.saved;
+      if (!saved.length && res.note) captureNote = res.note;
+    }
+  } else if (looksLikeIntake(lastUser)) {
     const res = await captureFromText(a.db, a.uid, lastUser).catch(() => null);
     if (res) saved = res.saved;
   }
@@ -36,7 +45,11 @@ export async function POST(req: Request) {
     ? "\n\nهمین الان این موارد رو از پیامِ کاربر برای امروزش ثبت کردی: " +
       saved.map((s) => s.label).join("، ") +
       ". اول کوتاه و گرم تأیید کن که ثبت شد، بعد یه نکته‌ی کوتاهِ مفید یا تشویق بده (مثلاً درباره‌ی کالری یا تعادلِ روز)."
-    : "";
+    : captureNote
+      ? `\n\nکاربر یه عکس فرستاد ولی نتونستی غذایی توش ثبت کنی. با مهربونی این رو بهش بگو: «${captureNote}»`
+      : image
+        ? "\n\nکاربر یه عکس فرستاد. اگه غذا بود ثبتش کردی؛ کوتاه و گرم راهنماییش کن."
+        : "";
 
   try {
     const reply = await aiText(

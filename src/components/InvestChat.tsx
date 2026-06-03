@@ -43,9 +43,9 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="مشاورِ سرمایه">
-      <div className="flex flex-col" style={{ height: "min(70vh, 560px)" }}>
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-3 py-2">
+    <Sheet open={open} onClose={onClose} title="مشاورِ سرمایه" fillHeight>
+      <div className="flex flex-col flex-1 min-h-0">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto space-y-3 py-2">
           {msgs.length === 0 && !busy && (
             <div className="text-center py-6">
               <div className="h-16 w-16 mx-auto mb-3 rounded-[20px] bg-ios-green/10 text-ios-green flex items-center justify-center"><AppIcon name="invest" size={30} /></div>
@@ -85,7 +85,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
 
         {err && <p className="text-ios-red text-[13px] px-1 pb-1">{err}</p>}
 
-        <div className="flex items-end gap-2 pt-2 border-t border-[var(--sep)]">
+        <div className="shrink-0 flex items-end gap-2 pt-2 border-t border-[var(--sep)]">
           <textarea
             className="ios-input flex-1 min-h-[46px] max-h-[120px] resize-none !py-2.5"
             value={input}

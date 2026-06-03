@@ -16,6 +16,7 @@ const NAV: { href: string; label: string; icon: string }[] = [
   { href: "/", label: "خانه", icon: "home" },
   { href: "/grow", label: "رشد", icon: "grow" },
   { href: "/health", label: "سلامت", icon: "health" },
+  { href: "/budget", label: "سرمایه", icon: "budget" },
   { href: "/coach", label: "مربی", icon: "coach" },
 ];
 
@@ -28,7 +29,7 @@ const TITLES: Record<string, string> = {
 };
 
 /** مسیرهایی که تب نیستند و باید شِورانِ بازگشت نشان دهند. */
-const SUB_ROUTES = new Set(["/budget"]);
+const SUB_ROUTES = new Set<string>([]);
 
 export default function AppChrome({
   username,
@@ -165,7 +166,7 @@ function NavTab({ href, label, icon, pathname }: { href: string; label: string; 
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[18px] transition ${
+      className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-[18px] transition ${
         active ? "text-ios-blue bg-ios-blue/10" : "text-[var(--secondary)]"
       }`}
     >
