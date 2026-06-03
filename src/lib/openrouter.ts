@@ -1,7 +1,12 @@
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "openai/gpt-4o-mini";
 
-export type AIMessage = { role: "system" | "user" | "assistant"; content: string };
+/** بخش‌های یک پیامِ چندوجهی (متن + تصویر) برای مدل‌های vision. */
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+export type AIMessage = { role: "system" | "user" | "assistant"; content: string | ContentPart[] };
 
 function apiKey(): string {
   const key = process.env.OPENROUTER_API_KEY;

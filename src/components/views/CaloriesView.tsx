@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, todayISO } from "@/lib/format";
+import { fa, todayISO, daysAgoISO, jDate, jDateShort } from "@/lib/format";
 import type { Meal, Profile } from "@/lib/types";
 import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, Segmented, SectionTitle } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
@@ -23,16 +23,32 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
   const [reportBusy, setReportBusy] = useState(false);
   const [reportErr, setReportErr] = useState("");
   const today = todayISO();
+  const [date, setDate] = useState(today);
+  const isToday = date === today;
 
   const load = useCallback(async () => {
-    const { meals } = await apiGet<{ meals: Meal[] }>(`/api/meals?date=${today}`);
+    setLoading(true);
+    const { meals } = await apiGet<{ meals: Meal[] }>(`/api/meals?date=${date}`);
     setMeals(meals);
     setLoading(false);
-  }, [today]);
+  }, [date]);
 
   useEffect(() => {
+    setReport(null);
+    setReportErr("");
     load();
   }, [load]);
+
+  // یک روز عقب/جلو (جلو فراتر از امروز نمی‌رود).
+  function shiftDay(delta: number) {
+    const d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    const iso = todayISO(d);
+    if (iso > today) return;
+    setDate(iso);
+  }
+
+  const dateLabel = isToday ? "امروز" : date === daysAgoISO(1) ? "دیروز" : jDateShort(date);
 
   const goal = profile?.daily_calorie_goal || 2000;
   const consumed = meals.reduce((s, m) => s + m.calories, 0);
@@ -46,7 +62,7 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
     setReportErr("");
     setReportBusy(true);
     try {
-      const { report } = await apiGet<{ report: string }>(`/api/meals/report?date=${today}`);
+      const { report } = await apiGet<{ report: string }>(`/api/meals/report?date=${date}`);
       setReport(report);
     } catch (e) {
       setReportErr(e instanceof Error ? e.message : "خطا در تهیه گزارش.");
@@ -63,7 +79,27 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
 
   return (
     <div className="space-y-3">
-      <SectionTitle action={<AddButton onClick={() => setOpen(true)} />}>کالری امروز</SectionTitle>
+      <SectionTitle action={<AddButton onClick={() => setOpen(true)} />}>کالری {dateLabel}</SectionTitle>
+
+      <div className="flex items-center justify-between gap-2 px-1">
+        {/* چپ (RTL): روز قبل */}
+        <button
+          onClick={() => shiftDay(-1)}
+          aria-label="روز قبل"
+          className="h-9 w-9 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.06] active:scale-90 transition"
+        >
+          <AppIcon name="chevron-right" size={20} />
+        </button>
+        <p className="font-semibold text-[15px]">{jDate(date)}</p>
+        <button
+          onClick={() => shiftDay(1)}
+          disabled={isToday}
+          aria-label="روز بعد"
+          className="h-9 w-9 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.06] active:scale-90 transition disabled:opacity-30"
+        >
+          <AppIcon name="chevron-left" size={20} />
+        </button>
+      </div>
 
       <Card className="flex items-center gap-5">
         <Ring progress={consumed / goal} color="#fb9a5b" size={132} stroke={14}>
@@ -137,7 +173,7 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
         </Card>
       )}
 
-      <AddMealSheet open={open} onClose={() => setOpen(false)} date={today} onAdded={load} />
+      <AddMealSheet open={open} onClose={() => setOpen(false)} date={date} onAdded={load} />
       <NutritionPlanSheet open={planOpen} onClose={() => setPlanOpen(false)} profile={profile} onProfileChange={onProfileChange} />
     </div>
   );

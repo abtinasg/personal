@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
 
 export function Card({
@@ -111,12 +111,18 @@ export function Sheet({
   onClose,
   title,
   children,
+  fillHeight = false,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** برای شیت‌های چت: ارتفاعِ ثابت می‌گیرد، خودش اسکرول نمی‌کند و بالای کیبورد می‌ماند. */
+  fillHeight?: boolean;
 }) {
+  // ارتفاعِ کیبوردِ موبایل تا شیت روی آن نرود و فیلدِ ورودی «زیرِ صفحه» نیفتد.
+  const [kb, setKb] = useState(0);
+
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -126,19 +132,54 @@ export function Sheet({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !fillHeight || typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const overlap = window.innerHeight - vv.height - vv.offsetTop;
+      setKb(overlap > 80 ? Math.round(overlap) : 0);
+    };
+    onResize();
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+      setKb(0);
+    };
+  }, [open, fillHeight]);
+
   if (!open) return null;
+
+  const sheetClass = fillHeight
+    ? "glass-strong relative w-full sm:max-w-md rounded-t-[34px] sm:rounded-[36px] shadow-float border border-[var(--border)] animate-sheet-up flex flex-col overflow-hidden"
+    : "glass-strong relative w-full sm:max-w-md rounded-t-[34px] sm:rounded-[36px] shadow-float border border-[var(--border)] animate-sheet-up max-h-[92vh] overflow-y-auto pb-[max(20px,env(safe-area-inset-bottom))]";
+
+  const sheetStyle: CSSProperties | undefined = fillHeight
+    ? {
+        height: "min(86dvh, 640px)",
+        maxHeight: `calc(100dvh - ${kb}px - 12px)`,
+        marginBottom: kb || undefined,
+      }
+    : undefined;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-[#1a1430]/30 backdrop-blur-md animate-[fade-up_0.2s_ease]" onClick={onClose} />
-      <div className="glass-strong relative w-full sm:max-w-md rounded-t-[34px] sm:rounded-[36px] shadow-float border border-[var(--border)] animate-sheet-up max-h-[92vh] overflow-y-auto pb-[max(20px,env(safe-area-inset-bottom))]">
-        <div className="sticky top-0 glass-strong z-10 flex items-center justify-between px-5 pt-4 pb-3">
+      <div className={sheetClass} style={sheetStyle}>
+        <div className={`${fillHeight ? "" : "sticky top-0"} glass-strong z-10 flex items-center justify-between px-5 pt-4 pb-3 shrink-0`}>
           <div className="absolute top-2 left-1/2 -translate-x-1/2 h-1.5 w-10 rounded-full bg-[var(--label)]/15" />
           <h3 className="text-[20px] font-bold mt-2">{title}</h3>
           <button onClick={onClose} className="mt-2 text-ios-blue text-[17px] font-medium active:opacity-60">
             بستن
           </button>
         </div>
-        <div className="px-5 pt-1">{children}</div>
+        {fillHeight ? (
+          <div className="flex-1 min-h-0 flex flex-col px-5 pt-1 pb-[max(12px,env(safe-area-inset-bottom))]">{children}</div>
+        ) : (
+          <div className="px-5 pt-1">{children}</div>
+        )}
       </div>
     </div>
   );

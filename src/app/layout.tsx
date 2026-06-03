@@ -42,6 +42,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   // اجازه‌ی زوم برای دسترس‌پذیری (پیش‌تر zoom غیرفعال بود)
   maximumScale: 5,
+  // با بازشدنِ کیبورد، layout کوچک می‌شود تا فیلدِ ورودیِ چت زیرِ صفحه نرود.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

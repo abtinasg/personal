@@ -9,7 +9,7 @@ import {
   Scale, Compass, Rocket, Trophy, Flag, Repeat, Vote, Wallet, Banknote,
   BarChart3, Lightbulb, Calculator, Hourglass, Clock, Feather, Sparkles,
   AlertTriangle, Circle,
-  Download, Smartphone, Share, Plus,
+  Download, Smartphone, Share, Plus, Camera, ChevronRight, ChevronLeft,
   Coins, DollarSign, CircleDollarSign, TrendingUp, Bitcoin, Landmark, Gem,
   type LucideIcon,
 } from "lucide-react";
@@ -65,6 +65,9 @@ const REGISTRY: Record<string, LucideIcon> = {
   weight: Scale,
   steps: Footprints,
   // — تزئینی / UI —
+  camera: Camera,
+  "chevron-right": ChevronRight,
+  "chevron-left": ChevronLeft,
   compass: Compass,
   rocket: Rocket,
   sparkles: Sparkles,
