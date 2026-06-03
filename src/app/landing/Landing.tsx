@@ -9,6 +9,73 @@ import { Ring } from "@/components/ui";
 const BRAND = "یک‌درصد";
 const SLOGAN = "هر روز یک‌درصد بهتر";
 
+/* نصبِ PWA ─────────────────────────────────────────────────
+   رویدادِ beforeinstallprompt ممکن است پیش از mountـِ کامپوننت‌ها
+   شلیک شود؛ پس آن را در سطحِ ماژول می‌گیریم و مشترکین را خبر می‌کنیم. */
+
+type BIPEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+let deferredPrompt: BIPEvent | null = null;
+const installSubs = new Set<() => void>();
+const notifyInstall = () => installSubs.forEach((fn) => fn());
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e as BIPEvent;
+    notifyInstall();
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+    notifyInstall();
+  });
+}
+
+type Platform = "ios" | "android" | "desktop";
+
+function useInstall() {
+  const [canPrompt, setCanPrompt] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [platform, setPlatform] = useState<Platform>("desktop");
+
+  useEffect(() => {
+    const sync = () => setCanPrompt(!!deferredPrompt);
+    installSubs.add(sync);
+    sync();
+
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setInstalled(standalone);
+
+    const ua = window.navigator.userAgent;
+    const isIOS =
+      /iphone|ipad|ipod/i.test(ua) ||
+      (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+    setPlatform(isIOS ? "ios" : /android/i.test(ua) ? "android" : "desktop");
+
+    return () => {
+      installSubs.delete(sync);
+    };
+  }, []);
+
+  const promptInstall = async () => {
+    if (!deferredPrompt) return false;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      deferredPrompt = null;
+      notifyInstall();
+    }
+    return outcome === "accepted";
+  };
+
+  return { canPrompt, installed, platform, promptInstall };
+}
+
 /* ابزارهای کوچک ───────────────────────────────────────────── */
 
 const FA = "۰۱۲۳۴۵۶۷۸۹";
@@ -75,6 +142,8 @@ export default function Landing() {
         <Coach />
         <Steps />
         <Privacy />
+        <Install />
+        <Faq />
         <FinalCTA />
       </main>
       <Footer />
@@ -98,11 +167,11 @@ function Nav() {
           <a href="#compound" className="hover:text-[var(--label)] transition">رشدِ مرکب</a>
           <a href="#features" className="hover:text-[var(--label)] transition">قابلیت‌ها</a>
           <a href="#coach" className="hover:text-[var(--label)] transition">مربیِ هوشمند</a>
-          <a href="#how" className="hover:text-[var(--label)] transition">چطور کار می‌کند</a>
+          <a href="#install" className="hover:text-[var(--label)] transition">نصبِ اپ</a>
         </nav>
-        <Link href="/login" className="ios-btn-primary text-[15px] !py-2.5 !px-5 shadow-glow active:scale-[0.97]">
-          شروع کن
-        </Link>
+        <InstallButton tone="gradient" className="text-[15px] !py-2.5 !px-5 shadow-glow">
+          <AppIcon name="download" size={17} /> نصبِ اپ
+        </InstallButton>
       </div>
     </header>
   );
@@ -141,17 +210,24 @@ function Hero() {
           </p>
 
           <div className="mt-9 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3 animate-fade-up [animation-delay:240ms]">
-            <Link href="/login" className="ios-btn-primary w-full sm:w-auto flex items-center justify-center gap-2 shadow-glow active:scale-[0.97]">
-              <AppIcon name="rocket" size={19} /> رایگان شروع کن
+            <InstallButton tone="gradient" className="w-full sm:w-auto shadow-glow">
+              <AppIcon name="download" size={19} /> نصبِ رایگانِ اپ
+            </InstallButton>
+            <Link href="/login" className="ios-btn-ghost w-full sm:w-auto flex items-center justify-center gap-2 active:scale-[0.97]">
+              <AppIcon name="rocket" size={18} /> شروع در مرورگر
             </Link>
-            <a href="#compound" className="ios-btn-ghost w-full sm:w-auto flex items-center justify-center gap-2 active:scale-[0.97]">
-              چرا یک‌درصد؟
-            </a>
           </div>
 
-          <div className="mt-6 flex items-center lg:justify-start justify-center gap-2 secondary text-[13px] animate-fade-up [animation-delay:320ms]">
-            <AppIcon name="check" size={15} className="text-ios-green" />
-            ورودِ بی‌رمز با پسکی · Face ID و Touch ID · بدونِ کارت بانکی
+          <div className="mt-6 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-x-4 gap-y-2 secondary text-[13px] animate-fade-up [animation-delay:320ms]">
+            <span className="inline-flex items-center gap-1.5">
+              <AppIcon name="check" size={15} className="text-ios-green" /> نصب در کمتر از یک دقیقه
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <AppIcon name="check" size={15} className="text-ios-green" /> رایگان، بدونِ کارت بانکی
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <AppIcon name="check" size={15} className="text-ios-green" /> ورودِ بی‌رمز با پسکی
+            </span>
           </div>
         </div>
 
@@ -601,11 +677,12 @@ function FinalCTA() {
               بهترین روزِ شروع، همین امروز است. در کمتر از یک دقیقه واردِ مسیرِ شدنت شو.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/login"
-                className="rounded-[20px] bg-white text-ios-indigo font-bold text-[17px] px-7 py-3.5 shadow-lg active:scale-[0.97] transition flex items-center gap-2">
-                <AppIcon name="rocket" size={19} /> رایگان شروع کن
+              <InstallButton tone="white" className="text-[17px] !px-7 shadow-lg">
+                <AppIcon name="download" size={19} /> نصبِ رایگانِ اپ
+              </InstallButton>
+              <Link href="/login" className="text-white font-semibold text-[15px] underline-offset-4 hover:underline active:opacity-70">
+                یا شروع در مرورگر ←
               </Link>
-              <span className="text-white/85 text-[14px]">بدون کارت بانکی · ورود با پسکی</span>
             </div>
           </div>
         </div>
@@ -746,5 +823,236 @@ function Grain() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-[9] opacity-[0.045] mix-blend-soft-light"
       style={{ backgroundImage: `url("${svg}")` }} />
+  );
+}
+
+/* دکمهٔ هوشمندِ نصب ───────────────────────────────────────────
+   اندروید/کروم: نصبِ یک‌ضربه‌ای. آی‌اواس و بقیه: راهنمای «افزودن به
+   صفحهٔ خانه». اگر از قبل نصب است: دکمه به بازکردنِ اپ تبدیل می‌شود. */
+
+function InstallButton({
+  children,
+  tone = "gradient",
+  className = "",
+}: {
+  children: ReactNode;
+  tone?: "gradient" | "white" | "ghost";
+  className?: string;
+}) {
+  const { canPrompt, installed, platform, promptInstall } = useInstall();
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  const base = "inline-flex items-center justify-center gap-2 font-bold transition active:scale-[0.97]";
+  const toneCls =
+    tone === "white"
+      ? "rounded-[20px] bg-white text-ios-indigo px-5 py-3.5"
+      : tone === "ghost"
+      ? "ios-btn-ghost"
+      : "ios-btn-primary";
+
+  if (installed) {
+    return (
+      <Link href="/login" className={`${base} ${toneCls} ${className}`}>
+        <AppIcon name="check" size={18} /> اپ نصب است — بازش کن
+      </Link>
+    );
+  }
+
+  const onClick = async () => {
+    if (canPrompt) {
+      await promptInstall();
+      return;
+    }
+    setHelpOpen(true);
+  };
+
+  return (
+    <>
+      <button type="button" onClick={onClick} className={`${base} ${toneCls} ${className}`}>
+        {children}
+      </button>
+      {helpOpen && <InstallHelp platform={platform} onClose={() => setHelpOpen(false)} />}
+    </>
+  );
+}
+
+/** راهنمای نصبِ دستی برای آی‌اواس و مرورگرهایی که نصبِ خودکار ندارند. */
+function InstallHelp({ platform, onClose }: { platform: Platform; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  const steps =
+    platform === "ios"
+      ? [
+          { icon: "share", text: "دکمهٔ هم‌رسانی (Share) را در نوارِ سافاری بزن." },
+          { icon: "plus", text: "«افزودن به صفحهٔ خانه» (Add to Home Screen) را انتخاب کن." },
+          { icon: "check", text: "روی «افزودن» بزن — اپ روی صفحهٔ خانه می‌نشیند." },
+        ]
+      : [
+          { icon: "phone", text: "منوی مرورگر (⋮) را باز کن." },
+          { icon: "download", text: "«نصبِ برنامه» یا «افزودن به صفحهٔ خانه» را بزن." },
+          { icon: "check", text: "تأیید کن — تمام! اپ مثلِ یک برنامهٔ واقعی باز می‌شود." },
+        ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div aria-hidden className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="card !rounded-ios-lg relative w-full max-w-md p-7 animate-fade-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-5">
+          <span
+            className="h-12 w-12 rounded-[18px] flex items-center justify-center text-white shadow-glow shrink-0"
+            style={{ background: "linear-gradient(135deg,#8267f2,#5b76f0)" }}
+          >
+            <AppIcon name="phone" size={24} />
+          </span>
+          <div>
+            <h3 className="font-display text-[24px] font-bold leading-none">نصبِ «{BRAND}»</h3>
+            <p className="secondary text-[13px] mt-1.5">
+              {platform === "ios" ? "روی آیفون و آیپد، در سافاری" : "در سه قدمِ کوتاه"}
+            </p>
+          </div>
+        </div>
+
+        <ol className="space-y-3">
+          {steps.map((s, i) => (
+            <li key={i} className="flex items-center gap-3 rounded-[18px] px-3.5 py-3"
+              style={{ background: "color-mix(in srgb, var(--card-solid) 50%, transparent)" }}>
+              <span className="font-display h-8 w-8 rounded-full bg-ios-indigo/12 text-ios-indigo font-bold flex items-center justify-center shrink-0 text-[15px]">
+                {faNum(i + 1)}
+              </span>
+              <AppIcon name={s.icon} size={20} className="text-ios-indigo shrink-0" />
+              <span className="text-[15px] font-semibold leading-tight">{s.text}</span>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <Link href="/login" className="text-ios-blue text-[15px] font-semibold active:opacity-60">
+            فعلاً در مرورگر شروع کن ←
+          </Link>
+          <button type="button" onClick={onClose} className="ios-btn-ghost !py-2.5 !px-5 text-[15px]">
+            باشه، فهمیدم
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* بخشِ نصب ───────────────────────────────────────────────── */
+
+const INSTALL_STEPS: { icon: string; title: string; desc: string; color: string }[] = [
+  { icon: "download", color: "#5b76f0", title: "«نصب» را بزن", desc: "یک ضربه روی اندروید و کروم؛ روی آیفون از «افزودن به صفحهٔ خانه»." },
+  { icon: "phone", color: "#8267f2", title: "روی صفحهٔ خانه می‌نشیند", desc: "مثلِ یک اپِ واقعی — تمام‌صفحه، سریع و بدونِ نوارِ مرورگر." },
+  { icon: "vote", color: "#22c391", title: "اولین رأیت را بده", desc: "با Face ID یا Touch ID وارد شو و همین امروز یک‌درصدت را بساز." },
+];
+
+function Install() {
+  return (
+    <section id="install" className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16">
+      <Reveal>
+        <div className="card !rounded-ios-lg p-8 sm:p-12 relative overflow-hidden">
+          <div className="absolute inset-0 -z-0 opacity-60" style={ledger} aria-hidden />
+          <div aria-hidden className="absolute -top-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-40"
+            style={{ background: "linear-gradient(135deg,#8267f2,#6a8bff)" }} />
+          <div className="relative grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+            <div className="text-center lg:text-right">
+              <p className="text-ios-indigo font-bold text-[15px] mb-3">روی گوشی، همیشه دمِ دست</p>
+              <h2 className="font-display text-[40px] sm:text-[54px] font-bold leading-[0.98] tracking-tight">
+                «{BRAND}» را روی گوشی‌ات نصب کن
+              </h2>
+              <p className="secondary text-[17px] leading-9 mt-5 max-w-md mx-auto lg:mx-0">
+                نه استوری لازم است، نه دانلودِ سنگین. یک ضربه و اپ روی صفحهٔ خانه‌ات می‌نشیند —
+                تا یادآوریِ هر روزه، فقط یک لمس فاصله داشته باشد.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+                <InstallButton tone="gradient" className="w-full sm:w-auto shadow-glow text-[17px] !px-7">
+                  <AppIcon name="download" size={20} /> همین حالا نصب کن
+                </InstallButton>
+                <Link href="/login" className="ios-btn-ghost w-full sm:w-auto flex items-center justify-center gap-2 active:scale-[0.97]">
+                  <AppIcon name="rocket" size={18} /> شروع در مرورگر
+                </Link>
+              </div>
+              <p className="secondary text-[13px] mt-4">
+                <AppIcon name="check" size={14} className="text-ios-green inline align-[-2px] ms-1" />
+                رایگان · بدونِ کارت بانکی · کار روی آیفون، اندروید و دسکتاپ
+              </p>
+            </div>
+
+            <ol className="space-y-3.5">
+              {INSTALL_STEPS.map((s, i) => (
+                <li key={s.title} className="flex items-center gap-4 rounded-[22px] p-4 border"
+                  style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--card-solid) 45%, transparent)" }}>
+                  <span className="relative h-12 w-12 rounded-[16px] flex items-center justify-center text-white shrink-0 shadow-card"
+                    style={{ background: `linear-gradient(135deg, ${s.color}, ${s.color}cc)` }}>
+                    <AppIcon name={s.icon} size={22} />
+                    <span className="font-display absolute -top-2 -right-2 h-6 w-6 rounded-full bg-[var(--card-solid)] text-[var(--label)] text-[13px] font-bold flex items-center justify-center shadow-card">
+                      {faNum(i + 1)}
+                    </span>
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[17px] font-bold tracking-tight">{s.title}</p>
+                    <p className="secondary text-[14px] leading-7 mt-0.5">{s.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* پرسش‌های پرتکرار ─────────────────────────────────────────── */
+
+const FAQS: { q: string; a: string }[] = [
+  { q: "چقدر طول می‌کشد تا شروع کنم؟", a: "کمتر از یک دقیقه. اپ را نصب کن، با Face ID یا Touch ID وارد شو و همان لحظه اولین رأیت را به آدمی که می‌خواهی بشوی بده." },
+  { q: "رایگان است؟", a: "بله. رایگان شروع کن — بدونِ کارت بانکی و بدونِ تعهد." },
+  { q: "حتماً باید نصبش کنم یا در مرورگر هم کار می‌کند؟", a: "هر دو. در مرورگر هم کامل کار می‌کند، اما نصب تجربه‌ای تمام‌صفحه، سریع‌تر و همیشه‌دمِ‌دست می‌دهد و یادآوری‌ها دمِ‌دست‌ترند." },
+  { q: "روی آیفون هم نصب می‌شود؟", a: "بله. در سافاری دکمهٔ هم‌رسانی را بزن و «افزودن به صفحهٔ خانه» را انتخاب کن — اپ مثلِ یک برنامهٔ واقعی باز می‌شود." },
+  { q: "داده‌هایم امن است؟", a: "ورود فقط با پسکی است؛ هیچ رمزی برای لو‌رفتن وجود ندارد و داده‌هایت خصوصی روی حسابِ خودت می‌ماند." },
+  { q: "اگر یک روز را جا انداختم چه؟", a: "اشکالی ندارد. هدف، کمال نیست؛ تداوم است. مهم این است که فردا دوباره برگردی و یک رأیِ کوچکِ دیگر بدهی." },
+];
+
+function Faq() {
+  return (
+    <section id="faq" className="mx-auto max-w-3xl px-5 sm:px-8 py-12 sm:py-16">
+      <SectionHead
+        eyebrow="هر چه باید بدانی"
+        title="پرسش‌های پرتکرار"
+        sub="اگر هنوز شک داری، احتمالاً جوابت همین‌جاست."
+      />
+      <div className="mt-10 space-y-3">
+        {FAQS.map((f, i) => (
+          <Reveal key={f.q} delay={(i % 3) * 60}>
+            <details className="card group p-0 overflow-hidden">
+              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 sm:px-6 py-4 select-none">
+                <span className="text-[16px] sm:text-[17px] font-bold leading-tight">{f.q}</span>
+                <span className="h-7 w-7 rounded-full bg-ios-indigo/12 text-ios-indigo flex items-center justify-center shrink-0 transition-transform duration-300 group-open:rotate-45">
+                  <AppIcon name="plus" size={17} />
+                </span>
+              </summary>
+              <p className="secondary text-[15px] leading-8 px-5 sm:px-6 pb-5 -mt-1">{f.a}</p>
+            </details>
+          </Reveal>
+        ))}
+      </div>
+    </section>
   );
 }

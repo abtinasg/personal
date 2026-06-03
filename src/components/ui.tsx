@@ -283,7 +283,7 @@ export function Segmented<T extends string>({
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-[14px] py-2 text-[14px] font-semibold transition ${
+          className={`min-w-0 flex-1 truncate whitespace-nowrap rounded-[14px] px-1 py-2 text-[14px] font-semibold transition ${
             value === o.value ? "bg-[var(--card-solid)] shadow-soft" : "secondary"
           }`}
         >
@@ -292,4 +292,37 @@ export function Segmented<T extends string>({
       ))}
     </div>
   );
+}
+
+/** شِوران (پیکانِ جهت‌دار). در RTL، «forward» به چپ و «back» به راست اشاره می‌کند. */
+export function Chevron({
+  dir = "forward",
+  size = 20,
+  className = "",
+}: {
+  dir?: "forward" | "back";
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d={dir === "back" ? "m9 18 6-6-6-6" : "m15 18-6-6 6-6"} />
+    </svg>
+  );
+}
+
+/** اسکلتِ بارگذاری — جای‌گیرِ نرم به‌جای پرشِ ناگهانیِ محتوا. */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-2xl bg-[var(--label)]/[0.06] ${className}`} aria-hidden />;
 }

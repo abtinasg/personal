@@ -1,11 +1,15 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getServiceClient } from "@/lib/supabase";
-import AppShell from "@/components/AppShell";
+import AppChrome from "@/components/AppChrome";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+/**
+ * لایه‌ی مشترکِ همه‌ی صفحاتِ داخلِ اپ: احرازِ هویت + هدر/تب‌بار/ثبتِ سریع.
+ * صفحاتِ ورود و لندینگ بیرونِ این گروه‌اند و این چارچوب را نمی‌گیرند.
+ */
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -22,5 +26,9 @@ export default async function Home() {
     // اگر اتصال دیتابیس برقرار نبود، با همان نام کاربری ادامه بده
   }
 
-  return <AppShell username={session.username} displayName={displayName} />;
+  return (
+    <AppChrome username={session.username} displayName={displayName}>
+      {children}
+    </AppChrome>
+  );
 }
