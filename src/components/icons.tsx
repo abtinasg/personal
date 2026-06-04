@@ -1,9 +1,43 @@
-/** نشانِ برند «یک‌درصد» — منحنیِ رشدِ مرکب که رو به بالا می‌رود. خطِ سفید روی گرادیان. */
-export function Logo({ size = 44, color = "#fff" }: { size?: number; color?: string }) {
+/**
+ * نشانِ برند «یک‌درصد» — منحنیِ رشدِ مرکب که شتاب می‌گیرد و رو به بالا می‌رود؛
+ * سه نقطه‌ی روزانه روی منحنی، استعاره‌ی «هر روز یک‌درصد» که در طول زمان مرکب می‌شود.
+ * حالتِ پیش‌فرض خطی (color)؛ با filled یک نشانِ گرادیانیِ تو‌پُر برای آیکونِ اپ می‌دهد.
+ */
+export function Logo({ size = 44, color = "#fff", filled = false }: { size?: number; color?: string; filled?: boolean }) {
+  // منحنیِ نمایی از پایین-راست به بالا-چپ (RTL: رشد به سمتِ بالا)
+  const curve = "M3.5 17.6 C 7.6 17 9.8 14.6 11.8 11.4 C 13.7 8.4 15.8 5.7 20.3 4.4";
+
+  if (filled) {
+    const gid = "logoGrad";
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#f5b87a" />
+            <stop offset="0.55" stopColor="#f5956b" />
+            <stop offset="1" stopColor="#e8724a" />
+          </linearGradient>
+        </defs>
+        {/* سطحِ زیرِ منحنی — حسِ انباشت و رشد */}
+        <path d={`${curve} L 20.3 19.5 L 3.5 19.5 Z`} fill={`url(#${gid})`} opacity={0.22} />
+        <path d={curve} stroke={`url(#${gid})`} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        {/* سرپیکانِ بالا */}
+        <path d="M15.6 4 H20.6 V9" stroke={`url(#${gid})`} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        {/* نقاطِ روزانه که بزرگ‌تر می‌شوند (مرکب‌شدن) */}
+        <circle cx="6.4" cy="17.1" r="0.95" fill="#f5b87a" />
+        <circle cx="11.8" cy="11.4" r="1.3" fill="#f5956b" />
+        <circle cx="20.3" cy="4.4" r="1.7" fill="#e8724a" />
+      </svg>
+    );
+  }
+
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 16.8C8 16.4 9.6 10.4 13 8.4 16 6.6 17.6 6 20.5 6" />
-      <path d="M14.6 6h5.9v5.9" />
+      <path d={curve} />
+      <path d="M15.6 4h5v5" />
+      <circle cx="6.4" cy="17.1" r="0.9" fill={color} stroke="none" />
+      <circle cx="11.8" cy="11.4" r="1.15" fill={color} stroke="none" />
+      <circle cx="20.3" cy="4.4" r="1.5" fill={color} stroke="none" />
     </svg>
   );
 }
