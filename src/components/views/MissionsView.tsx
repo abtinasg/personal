@@ -65,7 +65,7 @@ export default function MissionsView() {
   }
 
   async function remove(m: Mission) {
-    if (!(await confirm({ title: "حذف ماموریت", message: `«${m.title}» برای همیشه حذف شود؟`, confirmLabel: "حذف", danger: true }))) return;
+    if (!(await confirm({ title: "حذف ماموریت", message: `«${m.title}» همراهِ هویت و عادت‌های مربوط به آن برای همیشه حذف می‌شود. ادامه؟`, confirmLabel: "حذف", danger: true }))) return;
     setMissions((ms) => ms.filter((x) => x.id !== m.id));
     await apiSend(`/api/missions?id=${m.id}`, "DELETE");
   }

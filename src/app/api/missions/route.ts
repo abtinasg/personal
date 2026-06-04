@@ -131,7 +131,54 @@ export async function DELETE(req: Request) {
   if ("error" in a) return a.error;
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return bad("شناسه لازم است.");
+
+  // ماموریت را بگیر (هم برای صحتِ مالکیت، هم برای هویتِ مرتبط).
+  const { data: mission, error: mErr } = await a.db
+    .from("missions")
+    .select("id, identity_id")
+    .eq("id", id)
+    .eq("user_id", a.uid)
+    .maybeSingle();
+  if (mErr) return bad(mErr.message, 500);
+  if (!mission) return bad("ماموریت پیدا نشد.", 404);
+
+  // عادت‌های متصل به این ماموریت.
+  const { data: links } = await a.db
+    .from("mission_habits")
+    .select("habit_id")
+    .eq("mission_id", id)
+    .eq("user_id", a.uid);
+  const habitIds = (links || []).map((l) => l.habit_id as string);
+
+  // فقط عادت‌هایی را حذف کن که به ماموریتِ دیگری وصل نیستند (عادتِ مشترک باقی می‌ماند).
+  if (habitIds.length) {
+    const { data: shared } = await a.db
+      .from("mission_habits")
+      .select("habit_id")
+      .in("habit_id", habitIds)
+      .neq("mission_id", id)
+      .eq("user_id", a.uid);
+    const sharedIds = new Set((shared || []).map((s) => s.habit_id as string));
+    const habitsToDelete = habitIds.filter((h) => !sharedIds.has(h));
+    if (habitsToDelete.length) {
+      await a.db.from("habits").delete().in("id", habitsToDelete).eq("user_id", a.uid);
+    }
+  }
+
+  // خودِ ماموریت (cascade، نقاط‌عطف و ردیف‌های mission_habits را پاک می‌کند).
   const { error } = await a.db.from("missions").delete().eq("id", id).eq("user_id", a.uid);
   if (error) return bad(error.message, 500);
+
+  // هویتِ مرتبط را فقط وقتی حذف کن که هیچ ماموریت یا عادتِ دیگری ازش استفاده نمی‌کند.
+  if (mission.identity_id) {
+    const [{ count: missionUses }, { count: habitUses }] = await Promise.all([
+      a.db.from("missions").select("id", { count: "exact", head: true }).eq("identity_id", mission.identity_id).eq("user_id", a.uid),
+      a.db.from("habits").select("id", { count: "exact", head: true }).eq("identity_id", mission.identity_id).eq("user_id", a.uid),
+    ]);
+    if (!missionUses && !habitUses) {
+      await a.db.from("identities").delete().eq("id", mission.identity_id).eq("user_id", a.uid);
+    }
+  }
+
   return ok();
 }

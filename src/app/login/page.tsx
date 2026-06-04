@@ -25,25 +25,25 @@ const SLIDES: { icon: string; title: string; desc: string; grad: [string, string
     icon: "chart",
     title: "به یک‌درصد خوش اومدی",
     desc: "هر روز فقط یک‌درصد بهتر. همین رأیِ کوچکِ روزانه، در یک سال تو را ۳۷ برابر می‌کند.",
-    grad: ["#8267f2", "#6a8bff"],
+    grad: ["#f5956b", "#f5b87a"],
   },
   {
     icon: "rocket",
     title: "هدف‌هایت را زنده کن",
     desc: "ماموریت بساز و آن را به عادت‌های اتمیِ روزانه بشکن؛ پیشرفتت را با حلقه‌ها زنده ببین.",
-    grad: ["#5b76f0", "#2cb8cf"],
+    grad: ["#fb9a5b", "#e8724a"],
   },
   {
     icon: "flame",
     title: "همه‌چیز، یک‌جا",
     desc: "کالری، بودجه، آب و سلامتی — با ثبتِ سریع و هوشمند، بی‌شلوغی و آرام.",
-    grad: ["#fb9a5b", "#fb7fa0"],
+    grad: ["#f5c451", "#fb9a5b"],
   },
   {
     icon: "compass",
     title: "مربیِ همیشه‌همراه",
     desc: "یک مربیِ هوشمند کنارت است و ورودت بی‌رمز و امن، فقط با پسکی انجام می‌شود.",
-    grad: ["#a96ff0", "#8267f2"],
+    grad: ["#e8724a", "#d4572d"],
   },
 ];
 
@@ -193,7 +193,7 @@ export default function LoginPage() {
         className="flex-none flex flex-col"
         style={{
           height: "38dvh",
-          background: "linear-gradient(135deg, #6a8bff 0%, #8267f2 55%, #a96ff0 100%)",
+          background: "linear-gradient(135deg, #f5956b 0%, #e8724a 55%, #d4572d 100%)",
         }}
       >
         {/* نوار بالا */}
@@ -224,7 +224,7 @@ export default function LoginPage() {
 
       {/* کارت پایینی سفید */}
       <div
-        className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-6px_rgba(76,70,160,0.18)]"
+        className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-6px_rgba(160,80,30,0.15)]"
         style={{ minHeight: "62dvh" }}
       >
         {/* عنوان */}
@@ -330,7 +330,7 @@ export default function LoginPage() {
           disabled={busy || (!supported && authMethod === "passkey")}
           className="w-full h-14 rounded-full text-white text-[16px] font-bold flex items-center justify-center gap-2.5 active:scale-[0.97] transition disabled:opacity-50"
           style={{
-            background: "linear-gradient(135deg, #6a8bff 0%, #8267f2 55%, #a96ff0 100%)",
+            background: "linear-gradient(135deg, #f5956b 0%, #e8724a 55%, #d4572d 100%)",
             boxShadow: "0 8px 28px -8px rgba(130,103,242,0.55)",
           }}
         >
@@ -353,7 +353,7 @@ export default function LoginPage() {
         <p className="text-center text-[14px] mt-5 text-[var(--secondary)]">
           {isLogin ? "حساب نداری؟ " : "قبلاً حساب داری؟ "}
           <button
-            className="text-ios-indigo font-semibold active:opacity-60"
+            className="text-ios-peach font-semibold active:opacity-60"
             onClick={() => { setErr(""); setMode(isLogin ? "register" : "login"); }}
             disabled={busy}
           >
@@ -375,7 +375,7 @@ function SplashScreen({ onContinue }: { onContinue: () => void }) {
   return (
     <div
       className="relative min-h-[100dvh] flex flex-col items-center justify-between overflow-hidden px-6 pt-[max(60px,env(safe-area-inset-top))] pb-[max(48px,env(safe-area-inset-bottom))]"
-      style={{ background: "linear-gradient(160deg, #6a8bff 0%, #8267f2 55%, #a96ff0 100%)" }}
+      style={{ background: "linear-gradient(160deg, #f5956b 0%, #e8724a 55%, #d4572d 100%)" }}
     >
       {/* هاله‌های پس‌زمینه */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -426,7 +426,7 @@ function MethodButton({
       disabled={disabled}
       className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-[14px] font-semibold transition active:scale-95 ${
         active
-          ? "border-ios-indigo bg-ios-indigo/10 text-ios-indigo"
+          ? "border-ios-peach bg-ios-peach/10 text-ios-peach"
           : "border-[var(--secondary)]/25 text-[var(--secondary)] bg-transparent"
       } disabled:opacity-40`}
     >
@@ -443,7 +443,7 @@ function RememberToggle() {
       role="switch"
       aria-checked={on}
       onClick={() => setOn((v) => !v)}
-      className={`relative h-7 w-12 rounded-full transition-colors duration-200 ${on ? "bg-ios-indigo" : "bg-[var(--secondary)]/30"}`}
+      className={`relative h-7 w-12 rounded-full transition-colors duration-200 ${on ? "bg-ios-peach" : "bg-[var(--secondary)]/30"}`}
     >
       <span
         className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ${on ? "translate-x-0.5" : "-translate-x-5"}`}
@@ -490,7 +490,7 @@ function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => 
             className="relative h-40 w-40 rounded-[46px] flex items-center justify-center text-white animate-float"
             style={{
               backgroundImage: grad,
-              boxShadow: "0 26px 60px -16px rgba(76,70,160,0.5), inset 0 2px 0 rgba(255,255,255,0.45)",
+              boxShadow: "0 26px 60px -16px rgba(220,100,50,0.45), inset 0 2px 0 rgba(255,255,255,0.45)",
             }}
           >
             <AppIcon name={s.icon} size={68} strokeWidth={1.6} />
@@ -505,7 +505,7 @@ function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => 
           {SLIDES.map((_, idx) => (
             <span
               key={idx}
-              className={`h-2 rounded-full transition-all duration-300 ${idx === i ? "w-7 bg-ios-indigo" : "w-2 bg-[var(--secondary)]/45"}`}
+              className={`h-2 rounded-full transition-all duration-300 ${idx === i ? "w-7 bg-ios-peach" : "w-2 bg-[var(--secondary)]/45"}`}
             />
           ))}
         </div>
@@ -513,7 +513,7 @@ function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => 
           onClick={last ? onStart : () => setI(i + 1)}
           className="w-full h-14 rounded-full text-white text-[16px] font-bold flex items-center justify-center gap-2.5 active:scale-[0.97] transition"
           style={{
-            background: "linear-gradient(135deg, #6a8bff 0%, #8267f2 55%, #a96ff0 100%)",
+            background: "linear-gradient(135deg, #f5956b 0%, #e8724a 55%, #d4572d 100%)",
             boxShadow: "0 8px 28px -8px rgba(130,103,242,0.55)",
           }}
         >
@@ -523,7 +523,7 @@ function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => 
             <>بعدی <ChevronLeft /></>
           )}
         </button>
-        <button onClick={onLogin} className="w-full text-center text-ios-blue text-[15px] font-medium active:opacity-60">
+        <button onClick={onLogin} className="w-full text-center text-ios-peach text-[15px] font-medium active:opacity-60">
           قبلاً حساب دارم؟ ورود
         </button>
       </div>

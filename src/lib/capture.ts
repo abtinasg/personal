@@ -190,7 +190,8 @@ export async function captureMealFromImage(
           ],
         },
       ],
-      { temperature: 0.2, maxTokens: 400 }
+      // temperature صفر + seed ثابت تا عکسِ یکسان همیشه همون کالری رو بده (نه هر بار یه عدد).
+      { temperature: 0, maxTokens: 400, seed: 1 }
     );
   } catch (e) {
     return { saved: [], errors: [e instanceof Error ? e.message : "نتونستم عکس رو تحلیل کنم."] };

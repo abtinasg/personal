@@ -53,3 +53,9 @@ export async function clearSession() {
 export async function requireUser(): Promise<Session | null> {
   return getSession();
 }
+
+/** آیا این نشست متعلق به کاربرِ ادمین است؟ با متغیر محیطی ADMIN_USERNAME تعیین می‌شود. */
+export function isAdmin(session: Session | null): boolean {
+  const admin = process.env.ADMIN_USERNAME;
+  return !!session && !!admin && session.username === admin;
+}
