@@ -11,11 +11,11 @@ const config: Config = {
       colors: {
         // پالت رؤیایی و پاستلی — سطوح هواگونه و رنگ‌های نرمِ گرادیانی
         ios: {
-          bg: "#eceefb",
-          card: "#ffffff",
-          sep: "#e6e7f5",
-          gray: "#888da6",
-          label: "#262a40",
+          bg: "#fef5ee",
+          card: "#fffaf6",
+          sep: "#f5e8dc",
+          gray: "#a08878",
+          label: "#2c1f14",
           blue: "#5b76f0",
           green: "#22c391",
           orange: "#fb9a5b",
@@ -25,6 +25,9 @@ const config: Config = {
           teal: "#2cb8cf",
           indigo: "#8267f2",
           yellow: "#f5c451",
+          peach: "#f5956b",
+          apricot: "#f5b87a",
+          cream: "#fef5ee",
         },
       },
       borderRadius: {

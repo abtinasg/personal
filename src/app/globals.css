@@ -5,52 +5,52 @@
 :root {
   --font-vazir: "Vazirmatn", system-ui, sans-serif;
 
-  /* سطوحِ هواگونه و رؤیایی */
-  --bg: #eceefb;
-  --bg2: #e7ecfb;
-  --card: rgba(255, 255, 255, 0.85);
-  --card-solid: #ffffff;
-  --card-2: rgba(255, 255, 255, 0.55);
-  --label: #232740;
-  --secondary: #5f6486;
-  --sep: rgba(70, 60, 150, 0.1);
-  --border: rgba(255, 255, 255, 0.7);
-  --input-border: rgba(70, 60, 150, 0.14);
-  --hi: rgba(255, 255, 255, 0.9); /* هایلایتِ نور از بالا-چپ (نئومورفیسم) */
-  --ring: rgba(91, 118, 240, 0.45);
+  /* سطوحِ گرم و کِرِمی */
+  --bg: #fef5ee;
+  --bg2: #fdeee3;
+  --card: rgba(255, 251, 247, 0.88);
+  --card-solid: #fffaf6;
+  --card-2: rgba(255, 248, 242, 0.6);
+  --label: #2c1f14;
+  --secondary: #7a6357;
+  --sep: rgba(180, 100, 50, 0.1);
+  --border: rgba(255, 255, 255, 0.75);
+  --input-border: rgba(180, 100, 50, 0.14);
+  --hi: rgba(255, 255, 255, 0.9);
+  --ring: rgba(235, 120, 65, 0.4);
 
-  /* سایه‌های فوق‌نرم با تهِ‌رنگِ نیلی */
-  --shadow: 0 2px 6px -2px rgba(76, 70, 160, 0.1), 0 18px 42px -18px rgba(76, 70, 160, 0.22);
-  --shadow-lg: 0 30px 70px -24px rgba(76, 70, 160, 0.32);
+  /* سایه‌های فوق‌نرم با تهِ‌رنگِ هلویی */
+  --shadow: 0 2px 6px -2px rgba(160, 80, 30, 0.08), 0 18px 42px -18px rgba(160, 80, 30, 0.18);
+  --shadow-lg: 0 30px 70px -24px rgba(160, 80, 30, 0.28);
 
-  /* هاله‌های گرادیانی پس‌زمینه — نورِ ملایم از بالا-چپ */
+  /* هاله‌های گرادیانی پس‌زمینه — گرمِ هلویی */
   --bgimg:
-    radial-gradient(60% 50% at 8% -6%, rgba(150, 140, 255, 0.32), transparent 62%),
-    radial-gradient(50% 42% at 100% 3%, rgba(95, 215, 210, 0.22), transparent 58%),
-    radial-gradient(58% 50% at 50% 113%, rgba(255, 178, 150, 0.2), transparent 60%),
-    radial-gradient(42% 38% at 88% 80%, rgba(255, 150, 200, 0.16), transparent 60%);
+    radial-gradient(60% 50% at 8% -6%, rgba(255, 200, 150, 0.38), transparent 62%),
+    radial-gradient(50% 42% at 100% 3%, rgba(255, 180, 120, 0.26), transparent 58%),
+    radial-gradient(58% 50% at 50% 113%, rgba(255, 220, 180, 0.28), transparent 60%),
+    radial-gradient(42% 38% at 88% 80%, rgba(255, 160, 130, 0.2), transparent 60%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c0e1a;
-    --bg2: #11132a;
-    --card: rgba(32, 34, 58, 0.66);
-    --card-solid: #1a1c2e;
-    --card-2: rgba(44, 46, 72, 0.5);
-    --label: #f0f1fb;
-    --secondary: #a6aacb;
-    --sep: rgba(255, 255, 255, 0.08);
-    --border: rgba(255, 255, 255, 0.08);
-    --input-border: rgba(255, 255, 255, 0.14);
-    --hi: rgba(255, 255, 255, 0.06);
-    --ring: rgba(130, 103, 242, 0.5);
+    --bg: #1a100a;
+    --bg2: #221408;
+    --card: rgba(42, 28, 18, 0.72);
+    --card-solid: #2a1c12;
+    --card-2: rgba(55, 36, 22, 0.55);
+    --label: #f5ede6;
+    --secondary: #c4a898;
+    --sep: rgba(255, 180, 120, 0.1);
+    --border: rgba(255, 200, 150, 0.1);
+    --input-border: rgba(255, 180, 120, 0.16);
+    --hi: rgba(255, 200, 150, 0.06);
+    --ring: rgba(235, 120, 65, 0.5);
     --shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 24px 60px -22px rgba(0, 0, 0, 0.75);
     --shadow-lg: 0 36px 80px -26px rgba(0, 0, 0, 0.85);
     --bgimg:
-      radial-gradient(60% 50% at 8% -6%, rgba(120, 100, 240, 0.24), transparent 62%),
-      radial-gradient(50% 42% at 100% 3%, rgba(40, 175, 195, 0.16), transparent 58%),
-      radial-gradient(58% 50% at 50% 115%, rgba(180, 95, 230, 0.16), transparent 62%);
+      radial-gradient(60% 50% at 8% -6%, rgba(180, 80, 30, 0.22), transparent 62%),
+      radial-gradient(50% 42% at 100% 3%, rgba(200, 100, 50, 0.14), transparent 58%),
+      radial-gradient(58% 50% at 50% 115%, rgba(160, 60, 20, 0.18), transparent 62%);
   }
 }
 
@@ -116,8 +116,8 @@ body {
   }
   .ios-btn-primary {
     @apply ios-btn text-white;
-    background-image: linear-gradient(135deg, #6a8bff 0%, #8267f2 55%, #a96ff0 100%);
-    box-shadow: 0 12px 30px -10px rgba(120, 110, 250, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    background-image: linear-gradient(135deg, #f5956b 0%, #e8724a 55%, #d4572d 100%);
+    box-shadow: 0 12px 30px -10px rgba(220, 100, 50, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
   .ios-btn-ghost {
     @apply ios-btn text-[var(--label)];
@@ -137,7 +137,7 @@ body {
     background: color-mix(in srgb, var(--label) 6%, transparent);
   }
   .grad-text {
-    background-image: linear-gradient(120deg, #6a8bff, #8267f2 50%, #b676f2);
+    background-image: linear-gradient(120deg, #f5956b, #e8724a 50%, #d4572d);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

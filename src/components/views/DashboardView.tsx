@@ -163,16 +163,50 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
             );
           })}
         </div>
-        {data.moods.length > 1 && (
-          <div className="flex justify-between mt-4 pt-3 border-t border-[var(--sep)]">
-            {last7Moods(data.moods).map((d) => (
-              <div key={d.date} className="flex flex-col items-center gap-1">
-                <span className={`text-xl ${d.emoji ? "" : "opacity-25"}`}>{d.emoji || "·"}</span>
-                <span className="secondary text-[10px]">{jWeekday(d.date)}</span>
+        {data.moods.length > 1 && (() => {
+          const week = last7Moods(data.moods);
+          const scored = data.moods.filter((m) => week.some((w) => w.date === m.recorded_on));
+          const avg = scored.length ? scored.reduce((s, m) => s + m.score, 0) / scored.length : 0;
+          const pct = Math.round((avg / 5) * 100);
+          const label = pct >= 70 ? "هفته‌ی خوبیه" : pct >= 45 ? "هفته‌ی معمولیه" : "هفته‌ی سختیه";
+          return (
+            <div className="mt-4 pt-3 border-t border-[var(--sep)]">
+              <p className="font-bold text-[15px] mb-1">سفرِ حالت این هفته</p>
+              <p className="secondary text-[12px] mb-4">ببین احساساتت چطور تغییر کرد</p>
+              <div className="flex items-center gap-5">
+                <div className="relative shrink-0" style={{ width: 96, height: 88 }}>
+                  <svg viewBox="0 0 100 92" width="96" height="88">
+                    <defs>
+                      <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#f5c451" />
+                        <stop offset="100%" stopColor="#fb9a5b" />
+                      </linearGradient>
+                      <clipPath id="heartClip">
+                        <path d="M50 85 C50 85 5 55 5 28 C5 14 16 5 28 5 C36 5 44 9 50 16 C56 9 64 5 72 5 C84 5 95 14 95 28 C95 55 50 85 50 85Z" />
+                      </clipPath>
+                    </defs>
+                    {/* background heart */}
+                    <path d="M50 85 C50 85 5 55 5 28 C5 14 16 5 28 5 C36 5 44 9 50 16 C56 9 64 5 72 5 C84 5 95 14 95 28 C95 55 50 85 50 85Z" fill="rgba(245,180,122,0.18)" />
+                    {/* filled heart from bottom */}
+                    <rect x="0" y={92 - (92 * pct) / 100} width="100" height="92" clipPath="url(#heartClip)" fill="url(#heartGrad)" />
+                    <text x="50" y="48" textAnchor="middle" fontSize="20" fontWeight="800" fill="white" style={{ fontFamily: "var(--font-vazir)" }}>{pct}٪</text>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-extrabold text-[18px] leading-snug">{label}</p>
+                  <div className="flex justify-between mt-3">
+                    {week.map((d) => (
+                      <div key={d.date} className="flex flex-col items-center gap-0.5">
+                        <span className={`text-lg ${d.emoji ? "" : "opacity-20"}`}>{d.emoji || "·"}</span>
+                        <span className="secondary text-[10px]">{jWeekday(d.date)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </Card>
 
       {/* خلاصه */}

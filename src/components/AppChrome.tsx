@@ -34,10 +34,12 @@ const SUB_ROUTES = new Set<string>([]);
 export default function AppChrome({
   username,
   displayName,
+  isAdmin = false,
   children,
 }: {
   username: string;
   displayName: string;
+  isAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -148,6 +150,7 @@ export default function AppChrome({
           profile={profile}
           username={username}
           displayName={displayName}
+          isAdmin={isAdmin}
           onSaved={loadProfile}
           onLogout={async () => {
             await apiSend("/api/auth/logout", "POST");
@@ -182,6 +185,7 @@ function SettingsSheet({
   profile,
   username,
   displayName,
+  isAdmin = false,
   onSaved,
   onLogout,
 }: {
@@ -190,6 +194,7 @@ function SettingsSheet({
   profile: Profile | null;
   username: string;
   displayName: string;
+  isAdmin?: boolean;
   onSaved: () => void;
   onLogout: () => void;
 }) {
@@ -254,6 +259,16 @@ function SettingsSheet({
       <Button onClick={save} disabled={saving} className="w-full mt-5 flex items-center justify-center gap-2">
         {saving && <Spinner />} ذخیره
       </Button>
+      {isAdmin && (
+        <a
+          href="/admin"
+          onClick={onClose}
+          className="mt-3 flex w-full items-center justify-between rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 text-[16px] font-semibold active:opacity-60"
+        >
+          <span>پنل مدیریت</span>
+          <Chevron dir="forward" size={20} className="secondary" />
+        </a>
+      )}
       <button
         onClick={onLogout}
         className="w-full mt-3 py-3 text-ios-red font-semibold text-[17px] active:opacity-60"

@@ -1,7 +1,22 @@
 "use client";
 
 import { CSSProperties, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AppIcon } from "@/components/AppIcon";
+
+/**
+ * المان‌های overlay (مدال‌ها) را به‌جای جایِ فعلی‌شان مستقیم به <body> می‌بَرد.
+ * بدونِ این، چون مدال داخلِ <main> رندر می‌شه و <main> به‌خاطرِ انیمیشنِ fade-up
+ * یک transform دائمی دارد، آن <main> تبدیل به containing block برای position:fixed
+ * می‌شود و مدال نسبت به صفحه‌ی بلندِ اسکرول‌شده جای‌گذاری شده و از دید خارج می‌شود
+ * (به‌خصوص در PWA و صفحه‌های بلند مثل «سرمایه»). پورتال این مشکل را ریشه‌ای حل می‌کند.
+ */
+function Portal({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
 
 export function Card({
   children,
@@ -165,6 +180,7 @@ export function Sheet({
     : undefined;
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-[#1a1430]/30 backdrop-blur-md animate-[fade-up_0.2s_ease]" onClick={onClose} />
       <div className={sheetClass} style={sheetStyle}>
@@ -182,6 +198,7 @@ export function Sheet({
         )}
       </div>
     </div>
+    </Portal>
   );
 }
 
@@ -235,6 +252,7 @@ export function ConfirmDialog({
 
   if (!open) return null;
   return (
+    <Portal>
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-8">
       <div
         className="absolute inset-0 bg-[#1a1430]/35 backdrop-blur-md animate-[fade-up_0.2s_ease]"
@@ -264,6 +282,7 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+    </Portal>
   );
 }
 

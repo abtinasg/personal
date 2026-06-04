@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession, isAdmin } from "@/lib/auth";
 import { getServiceClient } from "@/lib/supabase";
 import AppChrome from "@/components/AppChrome";
 
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <AppChrome username={session.username} displayName={displayName}>
+    <AppChrome username={session.username} displayName={displayName} isAdmin={isAdmin(session)}>
       {children}
     </AppChrome>
   );

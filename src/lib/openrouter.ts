@@ -20,7 +20,7 @@ function apiKey(): string {
 
 async function call(
   messages: AIMessage[],
-  opts: { json?: boolean; temperature?: number; maxTokens?: number } = {}
+  opts: { json?: boolean; temperature?: number; maxTokens?: number; seed?: number } = {}
 ): Promise<string> {
   const res = await fetch(ENDPOINT, {
     method: "POST",
@@ -35,6 +35,8 @@ async function call(
       messages,
       temperature: opts.temperature ?? 0.2,
       max_tokens: opts.maxTokens ?? 800,
+      // seed باعث می‌شه ورودیِ یکسان خروجیِ پایدار بده (مثلاً تخمینِ کالریِ یک عکس هر بار یکی باشه).
+      ...(opts.seed != null ? { seed: opts.seed } : {}),
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
     }),
   });
@@ -55,7 +57,7 @@ async function call(
 /** یک پاسخ متنی آزاد از مدل می‌گیرد. */
 export async function aiText(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number }
+  opts?: { temperature?: number; maxTokens?: number; seed?: number }
 ): Promise<string> {
   return call(messages, opts);
 }
@@ -63,7 +65,7 @@ export async function aiText(
 /** از مدل می‌خواهد فقط JSON بدهد و آن را parse می‌کند. */
 export async function aiJSON<T>(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number }
+  opts?: { temperature?: number; maxTokens?: number; seed?: number }
 ): Promise<T> {
   const raw = await call(messages, { ...opts, json: true });
   return parseJSON<T>(raw);
