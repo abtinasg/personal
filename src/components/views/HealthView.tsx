@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, todayISO, daysAgoISO, jWeekday } from "@/lib/format";
+import { fa, todayISO, daysAgoISO, jWeekday, jDateShort } from "@/lib/format";
 import type { HealthMetric, Profile } from "@/lib/types";
 import { Card, Sheet, Field, Button, Spinner, SectionTitle, StatTile, IconChip, DarkActivityChart, BarChart } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
@@ -143,6 +143,13 @@ export default function HealthView({ profile }: { profile: Profile | null }) {
         </Card>
       )}
 
+      {weights.length >= 1 && (
+        <Card>
+          <p className="t-h3 mb-3">وزن‌های ثبت‌شده</p>
+          <WeightHistory weights={weights} onDelete={delWeight} />
+        </Card>
+      )}
+
       <MetricSheet kind={sheet} onClose={() => setSheet(null)} date={today} onAdded={load} />
     </div>
   );
@@ -218,6 +225,32 @@ function WeightChart({ data, goal }: { data: HealthMetric[]; goal?: number }) {
       <div className="flex justify-between mt-1">
         {data.map((d) => <span key={d.id} className="secondary text-[10px]">{jWeekday(d.recorded_on)}</span>)}
       </div>
+    </div>
+  );
+}
+
+function WeightHistory({ weights, onDelete }: { weights: HealthMetric[]; onDelete: (id: string) => void }) {
+  // weights صعودی است؛ برای نمایش، جدیدترین بالا و تغییرِ هر رکورد نسبت به رکوردِ قبل‌ترش محاسبه می‌شود.
+  const rows = weights
+    .map((w, i) => ({ w, delta: i > 0 ? Number(w.value) - Number(weights[i - 1].value) : null }))
+    .reverse();
+
+  return (
+    <div className="space-y-1 max-h-[260px] overflow-y-auto -mx-1">
+      {rows.map(({ w, delta }) => (
+        <div key={w.id} className="flex items-center gap-3 px-1 py-2 border-b border-[var(--sep)] last:border-0">
+          <span className="t-cap flex-1">{jDateShort(w.recorded_on)}</span>
+          {delta != null && delta !== 0 && (
+            <span className={`text-[12px] num ${delta > 0 ? "text-ios-red" : "text-ios-green"}`}>
+              {delta > 0 ? "▲" : "▼"} {fa(Math.abs(delta), 1)}
+            </span>
+          )}
+          <span className="num" style={{ fontSize: 16, color: "var(--ink)" }}>
+            {fa(Number(w.value), 1)}<span className="t-cap" style={{ fontWeight: 500 }}> kg</span>
+          </span>
+          <button onClick={() => onDelete(w.id)} className="text-ios-red/70 active:opacity-50 text-[20px] leading-none px-1">×</button>
+        </div>
+      ))}
     </div>
   );
 }
