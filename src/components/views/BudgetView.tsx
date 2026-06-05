@@ -298,7 +298,7 @@ function GoalCard({
       <div className="h-2.5 rounded-full bg-black/[0.06] dark:bg-white/[0.08] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct * 100}%`, backgroundImage: "linear-gradient(90deg, #22c391, #19a7c4)" }}
+          style={{ width: `${pct * 100}%`, backgroundImage: "linear-gradient(90deg, #6fa386, #3aa6b8)" }}
         />
       </div>
       <div className="flex items-center justify-between mt-1.5 text-[13px]">

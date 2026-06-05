@@ -98,7 +98,7 @@ export default function AppChrome({
             <button
               onClick={() => setSettingsOpen(true)}
               aria-label="تنظیمات و حساب"
-              className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-ios-blue to-ios-indigo text-white font-bold text-[18px] flex items-center justify-center shadow-card active:scale-95 transition"
+              className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-[var(--blue)] to-[var(--lav)] text-white font-bold text-[18px] flex items-center justify-center shadow-card active:scale-95 transition"
             >
               {(displayName[0] || "؟").toUpperCase()}
             </button>
@@ -121,7 +121,7 @@ export default function AppChrome({
               <button
                 onClick={() => setCaptureOpen(true)}
                 aria-label="ثبتِ سریع"
-                className="-mt-7 h-14 w-14 shrink-0 rounded-full bg-gradient-to-br from-[#6a8bff] via-ios-blue to-ios-indigo text-white flex items-center justify-center shadow-glow active:scale-90 transition"
+                className="-mt-7 h-14 w-14 shrink-0 rounded-full bg-[var(--ink)] text-white flex items-center justify-center shadow-glow active:scale-90 transition border-4 border-[var(--bg)]"
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
@@ -232,7 +232,7 @@ function SettingsSheet({
   return (
     <Sheet open={open} onClose={onClose} title="تنظیمات و اهداف">
       <div className="flex items-center gap-3 mb-5 mt-1">
-        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-ios-blue to-ios-indigo text-white font-bold text-[22px] flex items-center justify-center">
+        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[var(--blue)] to-[var(--lav)] text-white font-bold text-[22px] flex items-center justify-center">
           {(displayName[0] || "؟").toUpperCase()}
         </div>
         <div>

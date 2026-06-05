@@ -8,7 +8,7 @@ import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, us
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon, HABIT_ICONS } from "@/components/AppIcon";
 
-const COLORS = ["#22c391", "#5b76f0", "#fb9a5b", "#fb7fa0", "#a96ff0", "#2cb8cf", "#f5c451"];
+const COLORS = ["#6fa386", "#1f6ca6", "#ef9d63", "#f08197", "#8f86e6", "#3aa6b8", "#efc25e"];
 
 export default function HabitsView() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -180,7 +180,7 @@ export default function HabitsView() {
 
       {habits.length > 0 && (
         <Card className="flex items-center gap-5">
-          <Ring progress={habits.length ? doneTodayCount / habits.length : 0} color="#22c391" size={120} stroke={13}>
+          <Ring progress={habits.length ? doneTodayCount / habits.length : 0} color="#6fa386" size={120} stroke={13}>
             <span className="text-[26px] font-extrabold leading-none">{fa(doneTodayCount)}<span className="secondary text-[16px]">/{fa(habits.length)}</span></span>
             <span className="secondary text-[11px] mt-1">امروز</span>
           </Ring>

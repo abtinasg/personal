@@ -121,9 +121,9 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
                 className={`max-w-[82%] rounded-2xl text-[15px] leading-7 whitespace-pre-wrap overflow-hidden ${
                   m.role === "user"
                     ? "text-white"
-                    : "bg-black/[0.05] dark:bg-white/[0.08]"
+                    : "bg-white shadow-soft"
                 } ${m.image ? "p-1.5" : "px-3.5 py-2.5"}`}
-                style={m.role === "user" ? { backgroundImage: "linear-gradient(135deg, #5b76f0, #8267f2)" } : undefined}
+                style={m.role === "user" ? { background: "var(--ink)", borderRadius: "20px 20px 20px 6px" } : { borderRadius: "20px 20px 6px 20px" }}
               >
                 {m.image && (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -145,7 +145,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
 
           {busy && (
             <div className="flex justify-end">
-              <div className="rounded-2xl px-4 py-3 bg-black/[0.05] dark:bg-white/[0.08]"><Spinner className="!h-4 !w-4" /></div>
+              <div className="rounded-2xl px-4 py-3 bg-white shadow-soft"><Spinner className="!h-4 !w-4" /></div>
             </div>
           )}
         </div>
@@ -158,7 +158,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             aria-label="فرستادن عکس غذا"
-            className="h-[46px] w-[46px] shrink-0 rounded-2xl flex items-center justify-center bg-black/[0.05] dark:bg-white/[0.08] text-ios-blue disabled:opacity-40 active:scale-95 transition"
+            className="h-[46px] w-[46px] shrink-0 rounded-2xl flex items-center justify-center bg-black/[0.05] dark:bg-white/[0.08] text-[var(--blue)] disabled:opacity-40 active:scale-95 transition"
           >
             <AppIcon name="camera" size={22} />
           </button>

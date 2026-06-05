@@ -74,21 +74,21 @@ export default function CoachPage() {
         icon="sparkles"
         title="گفت‌وگو با مربی"
         sub="هر سؤالی داری بپرس؛ بر اساسِ داده‌های خودت جواب می‌گیری"
-        gradient="linear-gradient(135deg, #8267f2, #6a8bff)"
+        gradient="linear-gradient(135deg, #16517d, #1f6ca6)"
         onClick={() => setChatOpen(true)}
       />
       <HubRow
         icon="chart"
         title="مرورِ هفتگیِ هوشمند"
         sub="الگوهای هفته‌ات + یک قدمِ بعدی"
-        gradient="linear-gradient(135deg, #5b76f0, #2cb8cf)"
+        gradient="linear-gradient(135deg, #1f6ca6, #3aa6b8)"
         onClick={() => setWeeklyOpen(true)}
       />
       <HubRow
         icon="strength"
         title="برنامه‌ی ورزشی"
         sub="تمرینِ هوازی و قدرتیِ امروزت با مربیِ هوشمند"
-        gradient="linear-gradient(135deg, #fb9a5b, #fb7fa0)"
+        gradient="linear-gradient(135deg, #ef9d63, #f08197)"
         onClick={() => setView("workout")}
       />
 

@@ -2,56 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   یک‌درصد — ری‌دیزاینِ Dribbble: صاف، مینیمال، بولد.
+   کارت‌های توپُرِ سفید · کاشی‌های پاستلی · دکمه‌ی مشکیِ قرص‌شکل · آف‌وایت.
+   ============================================================================ */
+
 :root {
   --font-vazir: "Vazirmatn", system-ui, sans-serif;
+  --font-display: "Markazi Text", "Vazirmatn", serif;
 
-  /* سطوحِ گرم و کِرِمی */
-  --bg: #fef5ee;
-  --bg2: #fdeee3;
-  --card: rgba(255, 251, 247, 0.88);
-  --card-solid: #fffaf6;
-  --card-2: rgba(255, 248, 242, 0.6);
-  --label: #2c1f14;
-  --secondary: #7a6357;
-  --sep: rgba(180, 100, 50, 0.1);
-  --border: rgba(255, 255, 255, 0.75);
-  --input-border: rgba(180, 100, 50, 0.14);
+  /* متن و مشکی */
+  --ink: #16181f;
+  --ink-2: #20232e;
+  --label: #1c1f29;
+  --secondary: #8b90a0;
+
+  /* اکسنت‌ها (آبی + سبزِ مریمی + هلویی) */
+  --blue: #1f6ca6;
+  --blue-deep: #16517d;
+  --sage: #6fa386;
+  --peach: #ef9d63;
+  --lav: #8f86e6;
+  --yellow: #efc25e;
+  --rose: #f08197;
+  --teal: #3aa6b8;
+
+  /* تینتِ کاشی‌های پاستلی */
+  --t-blue: #dde9f3;
+  --t-sage: #dceae0;
+  --t-peach: #fbe6d4;
+  --t-lav: #e6e3f8;
+  --t-yellow: #faf0d3;
+  --t-rose: #fbe0e6;
+  --t-grey: #eef0f4;
+
+  /* سطوح */
+  --bg: #f4f2ee;
+  --bg2: #efece7;
+  --card: #ffffff;
+  --card-solid: #ffffff;
+  --line: rgba(22, 24, 31, 0.07);
+  --sep: rgba(22, 24, 31, 0.07);
+  --border: rgba(22, 24, 31, 0.06);
+  --input-border: rgba(22, 24, 31, 0.1);
   --hi: rgba(255, 255, 255, 0.9);
-  --ring: rgba(235, 120, 65, 0.4);
+  --ring: rgba(31, 108, 166, 0.32);
 
-  /* سایه‌های فوق‌نرم با تهِ‌رنگِ هلویی */
-  --shadow: 0 2px 6px -2px rgba(160, 80, 30, 0.08), 0 18px 42px -18px rgba(160, 80, 30, 0.18);
-  --shadow-lg: 0 30px 70px -24px rgba(160, 80, 30, 0.28);
+  /* سایه‌های نرمِ خنثی */
+  --sh-sm: 0 1px 2px rgba(30, 40, 70, 0.04), 0 6px 16px -10px rgba(30, 40, 70, 0.18);
+  --sh: 0 2px 6px -2px rgba(30, 40, 70, 0.06), 0 18px 40px -22px rgba(30, 40, 70, 0.26);
+  --sh-lg: 0 30px 70px -30px rgba(30, 40, 70, 0.34);
+  --sh-dark: 0 24px 50px -22px rgba(20, 22, 30, 0.45);
+  --shadow: var(--sh);
+  --shadow-lg: var(--sh-lg);
 
-  /* هاله‌های گرادیانی پس‌زمینه — گرمِ هلویی */
+  /* پس‌زمینه‌ی صاف با ته‌رنگِ خیلی ملایم */
   --bgimg:
-    radial-gradient(60% 50% at 8% -6%, rgba(255, 200, 150, 0.38), transparent 62%),
-    radial-gradient(50% 42% at 100% 3%, rgba(255, 180, 120, 0.26), transparent 58%),
-    radial-gradient(58% 50% at 50% 113%, rgba(255, 220, 180, 0.28), transparent 60%),
-    radial-gradient(42% 38% at 88% 80%, rgba(255, 160, 130, 0.2), transparent 60%);
-}
+    radial-gradient(120% 80% at 12% -8%, rgba(150, 180, 230, 0.20), transparent 60%),
+    radial-gradient(100% 70% at 100% 0%, rgba(120, 200, 190, 0.12), transparent 55%);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1a100a;
-    --bg2: #221408;
-    --card: rgba(42, 28, 18, 0.72);
-    --card-solid: #2a1c12;
-    --card-2: rgba(55, 36, 22, 0.55);
-    --label: #f5ede6;
-    --secondary: #c4a898;
-    --sep: rgba(255, 180, 120, 0.1);
-    --border: rgba(255, 200, 150, 0.1);
-    --input-border: rgba(255, 180, 120, 0.16);
-    --hi: rgba(255, 200, 150, 0.06);
-    --ring: rgba(235, 120, 65, 0.5);
-    --shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 24px 60px -22px rgba(0, 0, 0, 0.75);
-    --shadow-lg: 0 36px 80px -26px rgba(0, 0, 0, 0.85);
-    --bgimg:
-      radial-gradient(60% 50% at 8% -6%, rgba(180, 80, 30, 0.22), transparent 62%),
-      radial-gradient(50% 42% at 100% 3%, rgba(200, 100, 50, 0.14), transparent 58%),
-      radial-gradient(58% 50% at 50% 115%, rgba(160, 60, 20, 0.18), transparent 62%);
-  }
+  --r-sm: 16px;
+  --r: 24px;
+  --r-lg: 30px;
+  --r-xl: 38px;
+  --r-pill: 999px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
@@ -76,54 +91,81 @@ body {
   min-height: 100dvh;
 }
 
+/* ====== تایپوگرافی ====== */
+.t-display { font: 900 34px/1.06 var(--font-vazir); letter-spacing: -0.02em; color: var(--ink); }
+.t-h1 { font: 800 27px/1.12 var(--font-vazir); letter-spacing: -0.02em; color: var(--ink); }
+.t-h2 { font: 800 21px/1.18 var(--font-vazir); letter-spacing: -0.01em; color: var(--ink); }
+.t-h3 { font: 700 16px/1.25 var(--font-vazir); color: var(--label); }
+.t-cap { font: 500 12.5px/1.4 var(--font-vazir); color: var(--secondary); }
+.num { font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
+
+/* باکسِ هایلایتِ آبی روی کلمه */
+.mark {
+  background: var(--blue);
+  color: #fff;
+  padding: 0 8px;
+  border-radius: 8px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 @layer components {
-  /* هیبریدِ گلَس‌مورفیسم + نئومورفیسم: سطحِ مات و شیری، شناور روی پس‌زمینه */
+  /* کارتِ توپُرِ سفید با سایه‌ی نرمِ خنثی */
   .card {
-    @apply rounded-ios border;
+    @apply rounded-ios p-5;
     background: var(--card);
-    border-color: var(--border);
-    backdrop-filter: saturate(160%) blur(18px);
-    -webkit-backdrop-filter: saturate(160%) blur(18px);
-    box-shadow: var(--shadow), inset 0 1px 0 var(--hi);
+    box-shadow: var(--sh);
+  }
+  .card-flat {
+    @apply rounded-ios p-4;
+    background: var(--card);
+    box-shadow: var(--sh-sm);
   }
   .float-card {
-    @apply card;
-    box-shadow: var(--shadow-lg), inset 0 1px 0 var(--hi);
+    @apply rounded-ios p-5;
+    background: var(--card);
+    box-shadow: var(--sh-lg);
   }
+  /* نوارهای شناورِ بالا/پایین: سفیدِ نیمه‌شفاف + بلور */
   .glass {
-    background: color-mix(in srgb, var(--bg) 62%, transparent);
-    backdrop-filter: saturate(180%) blur(24px);
-    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    background: rgba(244, 242, 238, 0.72);
+    backdrop-filter: saturate(140%) blur(20px);
+    -webkit-backdrop-filter: saturate(140%) blur(20px);
   }
   .glass-strong {
-    background: color-mix(in srgb, var(--card-solid) 82%, transparent);
-    backdrop-filter: saturate(180%) blur(30px);
-    -webkit-backdrop-filter: saturate(180%) blur(30px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: saturate(140%) blur(24px);
+    -webkit-backdrop-filter: saturate(140%) blur(24px);
   }
   .ios-input {
-    @apply w-full rounded-[20px] px-4 py-3.5 text-[17px] outline-none transition
+    @apply w-full rounded-[18px] px-4 py-3.5 text-[16px] outline-none transition
       placeholder:text-[var(--secondary)];
-    background: color-mix(in srgb, var(--card-solid) 72%, transparent);
+    background: #fff;
     border: 1px solid var(--input-border);
-    box-shadow: inset 0 1px 0 var(--hi);
   }
   .ios-input:focus {
-    border-color: color-mix(in srgb, var(--ring) 70%, transparent);
-    box-shadow: 0 0 0 4px var(--ring), inset 0 1px 0 var(--hi);
+    border-color: color-mix(in srgb, var(--blue) 60%, transparent);
+    box-shadow: 0 0 0 4px var(--ring);
   }
+  /* دکمه‌ی قرص‌شکل */
   .ios-btn {
-    @apply rounded-[20px] px-5 py-3.5 text-[17px] font-semibold transition active:scale-[0.97] disabled:opacity-50;
+    @apply rounded-full px-6 py-3.5 text-[16px] font-bold transition active:scale-[0.97] disabled:opacity-50;
   }
   .ios-btn-primary {
     @apply ios-btn text-white;
-    background-image: linear-gradient(135deg, #f5956b 0%, #e8724a 55%, #d4572d 100%);
-    box-shadow: 0 12px 30px -10px rgba(220, 100, 50, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    background: var(--ink);
+    box-shadow: 0 14px 28px -14px rgba(20, 22, 30, 0.6);
+  }
+  .ios-btn-blue {
+    @apply ios-btn text-white;
+    background: var(--blue);
+    box-shadow: 0 14px 28px -14px rgba(31, 108, 166, 0.6);
   }
   .ios-btn-ghost {
-    @apply ios-btn text-[var(--label)];
-    background: color-mix(in srgb, var(--card-solid) 60%, transparent);
-    border: 1px solid var(--input-border);
-    box-shadow: inset 0 1px 0 var(--hi);
+    @apply ios-btn text-[var(--ink)];
+    background: #fff;
+    border: 1px solid var(--line);
+    box-shadow: var(--sh-sm);
   }
   .secondary {
     color: var(--secondary);
@@ -133,29 +175,63 @@ body {
     border-color: var(--sep);
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium;
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-semibold;
     background: color-mix(in srgb, var(--label) 6%, transparent);
   }
   .grad-text {
-    background-image: linear-gradient(120deg, #f5956b, #e8724a 50%, #d4572d);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--blue);
   }
   .track {
     @apply h-2.5 rounded-full overflow-hidden;
-    background: color-mix(in srgb, var(--label) 8%, transparent);
+    background: rgba(22, 24, 31, 0.08);
   }
 }
 
 @layer utilities {
-  .shadow-card {
-    box-shadow: var(--shadow);
-  }
-  .shadow-float {
-    box-shadow: var(--shadow-lg);
-  }
+  .shadow-card { box-shadow: var(--sh); }
+  .shadow-soft { box-shadow: var(--sh-sm); }
+  .shadow-float { box-shadow: var(--sh-lg); }
 }
+
+/* ====== کاشیِ آمارِ پاستلی ====== */
+.tile {
+  border-radius: var(--r);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--sh-sm);
+  min-height: 104px;
+}
+.tile-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* ====== چیپِ آیکونِ تینت‌دار ====== */
+.ichip { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ====== کارتِ فعالیتِ مشکی ====== */
+.dark-card { background: #181a22; border-radius: var(--r-lg); padding: 18px; box-shadow: var(--sh-dark); }
+.dark-bars { display: flex; align-items: flex-end; gap: 7px; margin-top: 18px; height: 116px; }
+.dbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; position: relative; }
+.dbar { width: 100%; border-radius: 8px; min-height: 8px; }
+.peak-pill { position: absolute; top: -2px; transform: translateY(-100%); color: #fff; font: 700 11px/1 var(--font-vazir); padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.peak-pill::after { content: ""; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: inherit; }
+
+/* ====== مدالِ نشان ====== */
+.badge-disc { width: 66px; height: 66px; border-radius: 999px; display: flex; align-items: center; justify-content: center; box-shadow: var(--sh-sm); }
+.badge-inner { width: 50px; height: 50px; border-radius: 999px; background: #fff; display: flex; align-items: center; justify-content: center; }
+
+/* ====== نمودار میله‌ای روشن ====== */
+.bars { display: flex; align-items: flex-end; gap: 8px; }
+.bar-col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.bar { width: 100%; border-radius: 8px; min-height: 6px; }
+
+/* ====== تاگلِ دایره‌ای عادت ====== */
+.toggle { width: 46px; height: 46px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 0; cursor: pointer; transition: transform .15s var(--ease); }
+.toggle:active { transform: scale(0.92); }
+
+/* ۷ نقطه‌ی استریک */
+.dots7 { display: flex; gap: 5px; margin-top: 8px; }
+.dots7 i { width: 11px; height: 11px; border-radius: 999px; }
 
 /* hide number input spinners */
 input[type="number"]::-webkit-inner-spin-button,

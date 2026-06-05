@@ -102,16 +102,16 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
       </div>
 
       <Card className="flex items-center gap-5">
-        <Ring progress={consumed / goal} color="#fb9a5b" size={132} stroke={14}>
+        <Ring progress={consumed / goal} color="#ef9d63" size={132} stroke={14}>
           <span className="text-[30px] font-extrabold leading-none">{fa(consumed)}</span>
           <span className="secondary text-[12px] mt-1">از {fa(goal)}</span>
         </Ring>
         <div className="flex-1 space-y-2">
           <Stat label="باقی‌مانده" value={`${fa(Math.abs(remaining))} کالری`} tone={remaining < 0 ? "red" : "green"} hint={remaining < 0 ? "بیشتر از هدف" : "تا هدف"} />
           <div className="grid grid-cols-3 gap-2 pt-1">
-            <Macro label="پروتئین" v={macro.p} color="#5b76f0" />
-            <Macro label="کربو" v={macro.c} color="#fb9a5b" />
-            <Macro label="چربی" v={macro.f} color="#fb7fa0" />
+            <Macro label="پروتئین" v={macro.p} color="#1f6ca6" />
+            <Macro label="کربو" v={macro.c} color="#ef9d63" />
+            <Macro label="چربی" v={macro.f} color="#f08197" />
           </div>
         </div>
       </Card>
@@ -348,9 +348,9 @@ function NutritionPlanSheet({
               )}
             </div>
             <div className="grid grid-cols-3 gap-2 pt-1">
-              <Macro label="پروتئین (گ)" v={plan.protein_g} color="#5b76f0" />
-              <Macro label="کربو (گ)" v={plan.carb_g} color="#fb9a5b" />
-              <Macro label="چربی (گ)" v={plan.fat_g} color="#fb7fa0" />
+              <Macro label="پروتئین (گ)" v={plan.protein_g} color="#1f6ca6" />
+              <Macro label="کربو (گ)" v={plan.carb_g} color="#ef9d63" />
+              <Macro label="چربی (گ)" v={plan.fat_g} color="#f08197" />
             </div>
           </Card>
 
@@ -512,7 +512,7 @@ export function AddButton({ onClick }: { onClick: () => void }) {
       aria-label="افزودن"
       className="h-9 w-9 rounded-full text-white text-[22px] leading-none flex items-center justify-center active:scale-90 transition"
       style={{
-        backgroundImage: "linear-gradient(135deg,#6a8bff,#8267f2)",
+        backgroundImage: "linear-gradient(135deg,#1f6ca6,#16517d)",
         boxShadow: "0 8px 20px -6px rgba(120,110,250,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
       }}
     >

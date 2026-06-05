@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa, money, todayISO, daysAgoISO, monthStart, monthKey, jWeekday } from "@/lib/format";
 import { type Habit, type HabitLog, type HealthMetric, type Identity, type Meal, type Mission, type Mood, type Profile, type Tab, type Transaction, identityLevel } from "@/lib/types";
-import { Card, Ring, SectionTitle, Spinner } from "@/components/ui";
+import { Card, SectionTitle, Spinner, StatTile } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 
 const MOODS = [
@@ -178,8 +178,8 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
                   <svg viewBox="0 0 100 92" width="96" height="88">
                     <defs>
                       <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#f5c451" />
-                        <stop offset="100%" stopColor="#fb9a5b" />
+                        <stop offset="0%" stopColor="#efc25e" />
+                        <stop offset="100%" stopColor="#ef9d63" />
                       </linearGradient>
                       <clipPath id="heartClip">
                         <path d="M50 85 C50 85 5 55 5 28 C5 14 16 5 28 5 C36 5 44 9 50 16 C56 9 64 5 72 5 C84 5 95 14 95 28 C95 55 50 85 50 85Z" />
@@ -212,57 +212,15 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
       {/* خلاصه */}
       <SectionTitle>یک نگاه به امروز</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
-        <Card onClick={() => onGoto("calorie")} className="!p-4">
-          <div className="flex items-center gap-3">
-            <Ring progress={consumed / calGoal} color="#fb9a5b" size={62} stroke={8}>
-              <span className="text-ios-orange"><AppIcon name="flame" size={22} /></span>
-            </Ring>
-            <div className="min-w-0">
-              <p className="secondary text-[13px]">کالری</p>
-              <p className="font-extrabold text-[19px] leading-tight">{fa(consumed)}</p>
-              <p className="secondary text-[11px]">از {fa(calGoal)}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card onClick={() => onGoto("habit")} className="!p-4">
-          <div className="flex items-center gap-3">
-            <Ring progress={data.habits.length ? habitsDone / data.habits.length : 0} color="#22c391" size={62} stroke={8}>
-              <span className="text-ios-green"><AppIcon name="vote" size={22} /></span>
-            </Ring>
-            <div className="min-w-0">
-              <p className="secondary text-[13px]">رأی امروز</p>
-              <p className="font-extrabold text-[19px] leading-tight">{fa(habitsDone)}/{fa(data.habits.length)}</p>
-              <p className="secondary text-[11px]">عادت‌ها</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card onClick={() => onGoto("health")} className="!p-4">
-          <div className="flex items-center gap-3">
-            <Ring progress={waterToday / waterGoal} color="#2cb8cf" size={62} stroke={8}>
-              <span className="text-ios-teal"><AppIcon name="water" size={22} /></span>
-            </Ring>
-            <div className="min-w-0">
-              <p className="secondary text-[13px]">آب</p>
-              <p className="font-extrabold text-[19px] leading-tight">{fa(waterToday)}</p>
-              <p className="secondary text-[11px]">از {fa(waterGoal)}ml</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card onClick={() => onGoto("budget")} className="!p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-[62px] w-[62px] rounded-full bg-ios-green/10 text-ios-green flex items-center justify-center shrink-0"><AppIcon name="invest" size={24} /></div>
-            <div className="min-w-0">
-              <p className="secondary text-[13px]">سرمایه‌ی ماه</p>
-              <p className={`font-extrabold text-[17px] leading-tight truncate ${monthIncome - monthExpense < 0 ? "text-ios-red" : "text-ios-green"}`}>
-                {fa(monthIncome - monthExpense)}
-              </p>
-              <p className="text-[11px] secondary">مازادِ قابلِ سرمایه‌گذاری</p>
-            </div>
-          </div>
-        </Card>
+        <StatTile tint="var(--t-peach)" label="کالری" value={fa(consumed)} sub={`از ${fa(calGoal)}`}
+          icon="flame" iconColor="var(--peach)" onClick={() => onGoto("calorie")} />
+        <StatTile tint="var(--t-sage)" label="رأی امروز" value={`${fa(habitsDone)}/${fa(data.habits.length)}`} sub="عادت‌ها"
+          ring={data.habits.length ? habitsDone / data.habits.length : 0} ringColor="var(--sage)"
+          icon="vote" iconColor="var(--sage)" onClick={() => onGoto("habit")} />
+        <StatTile tint="var(--t-blue)" label="آب" value={fa(waterToday)} sub={`از ${fa(waterGoal)}ml`}
+          icon="water" iconColor="var(--blue)" onClick={() => onGoto("health")} />
+        <StatTile tint="var(--t-lav)" label="سرمایه‌ی ماه" value={fa(monthIncome - monthExpense)} sub="مازاد قابلِ سرمایه‌گذاری"
+          icon="wallet" iconColor="var(--lav)" onClick={() => onGoto("budget")} />
       </div>
 
       {budget > 0 && (
@@ -276,7 +234,7 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
           <div className="h-3 rounded-full bg-black/[0.06] dark:bg-white/[0.08] overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${Math.min(100, (monthExpense / budget) * 100)}%`, background: monthExpense > budget ? "#f56178" : "#5b76f0" }}
+              style={{ width: `${Math.min(100, (monthExpense / budget) * 100)}%`, background: monthExpense > budget ? "#f08197" : "#1f6ca6" }}
             />
           </div>
         </Card>

@@ -9,17 +9,17 @@ import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon } from "@/components/AppIcon";
 
 const REWARD_ICONS = ["gift", "trophy", "star", "sparkles", "fun", "celebrate", "heart", "sun", "rocket"];
-const COLORS = ["#fb9a5b", "#fb7fa0", "#a96ff0", "#8267f2", "#5b76f0", "#2cb8cf", "#22c391"];
+const COLORS = ["#ef9d63", "#f08197", "#8f86e6", "#16517d", "#1f6ca6", "#3aa6b8", "#6fa386"];
 const DAY_OPTIONS = [3, 5, 7, 14, 21, 30];
 
 // پیشنهادهای آماده — هیجان‌انگیز و غیرخوراکی (نه «برو غذا بخور»).
 const PRESETS: { title: string; emoji: string; color: string; days: number }[] = [
-  { title: "یه قسمت از سریالِ موردعلاقه‌ت", emoji: "fun", color: "#a96ff0", days: 3 },
-  { title: "یه آهنگِ جدید یا پلی‌لیستِ تازه", emoji: "sparkles", color: "#fb7fa0", days: 3 },
-  { title: "یه ساعت بازی بدونِ عذابِ وجدان", emoji: "celebrate", color: "#8267f2", days: 5 },
-  { title: "خریدِ یه چیزِ کوچیکِ دلخواه", emoji: "gift", color: "#fb9a5b", days: 7 },
-  { title: "یه فیلم تو سینما", emoji: "trophy", color: "#5b76f0", days: 7 },
-  { title: "یه روزِ کاملِ استراحت و تفریح", emoji: "star", color: "#22c391", days: 14 },
+  { title: "یه قسمت از سریالِ موردعلاقه‌ت", emoji: "fun", color: "#8f86e6", days: 3 },
+  { title: "یه آهنگِ جدید یا پلی‌لیستِ تازه", emoji: "sparkles", color: "#f08197", days: 3 },
+  { title: "یه ساعت بازی بدونِ عذابِ وجدان", emoji: "celebrate", color: "#16517d", days: 5 },
+  { title: "خریدِ یه چیزِ کوچیکِ دلخواه", emoji: "gift", color: "#ef9d63", days: 7 },
+  { title: "یه فیلم تو سینما", emoji: "trophy", color: "#1f6ca6", days: 7 },
+  { title: "یه روزِ کاملِ استراحت و تفریح", emoji: "star", color: "#6fa386", days: 14 },
 ];
 
 export default function RewardsView() {
@@ -83,7 +83,7 @@ export default function RewardsView() {
       <Card className="flex items-center gap-4 !p-5">
         <div
           className="h-[72px] w-[72px] rounded-[22px] flex items-center justify-center shrink-0 shadow-card"
-          style={{ backgroundImage: "linear-gradient(135deg, #fb9a5b, #fb7fa0)" }}
+          style={{ backgroundImage: "linear-gradient(135deg, #ef9d63, #f08197)" }}
         >
           <AppIcon name="flame" size={36} className="text-white" />
         </div>
