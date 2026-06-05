@@ -47,13 +47,13 @@ const LEVEL_FA = Object.fromEntries(LEVEL_OPTS.map((o) => [o.value, o.label])) a
 const LOCATION_FA = Object.fromEntries(LOCATION_OPTS.map((o) => [o.value, o.label])) as Record<string, string>;
 
 const KIND_META: Record<WorkoutBlockKind, { label: string; icon: string; color: string }> = {
-  warmup: { label: "گرم‌کردن", icon: "sun", color: "#fb9a5b" },
-  strength: { label: "قدرتی", icon: "strength", color: "#8267f2" },
-  aerobic: { label: "هوازی", icon: "run", color: "#2cb8cf" },
-  cooldown: { label: "سردکردن و کشش", icon: "calm", color: "#5b76f0" },
+  warmup: { label: "گرم‌کردن", icon: "sun", color: "#ef9d63" },
+  strength: { label: "قدرتی", icon: "strength", color: "#16517d" },
+  aerobic: { label: "هوازی", icon: "run", color: "#3aa6b8" },
+  cooldown: { label: "سردکردن و کشش", icon: "calm", color: "#1f6ca6" },
 };
 
-const HERO_GRADIENT = "linear-gradient(135deg,#5b76f0,#2cb8cf)";
+const HERO_GRADIENT = "linear-gradient(135deg,#1f6ca6,#3aa6b8)";
 
 export default function WorkoutView() {
   const [loading, setLoading] = useState(true);
@@ -139,7 +139,7 @@ export default function WorkoutView() {
         <>
           {/* وضعیتِ کلی */}
           <Card className="flex items-center gap-3 !py-3">
-            <span className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "#8267f222", color: "#8267f2" }}>
+            <span className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "#16517d22", color: "#16517d" }}>
               <AppIcon name="target" size={20} />
             </span>
             <div className="flex-1 min-w-0">

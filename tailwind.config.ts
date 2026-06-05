@@ -9,42 +9,46 @@ const config: Config = {
         display: ["var(--font-display)", "var(--font-vazir)", "serif"],
       },
       colors: {
-        // پالت رؤیایی و پاستلی — سطوح هواگونه و رنگ‌های نرمِ گرادیانی
+        // پالتِ مهارشده: آبی + سبزِ مریمی + هلویی، روی آف‌وایت
         ios: {
-          bg: "#fef5ee",
-          card: "#fffaf6",
-          sep: "#f5e8dc",
-          gray: "#a08878",
-          label: "#2c1f14",
-          blue: "#5b76f0",
-          green: "#22c391",
-          orange: "#fb9a5b",
-          red: "#f56178",
-          purple: "#a96ff0",
-          pink: "#fb7fa0",
-          teal: "#2cb8cf",
-          indigo: "#8267f2",
-          yellow: "#f5c451",
-          peach: "#f5956b",
-          apricot: "#f5b87a",
-          cream: "#fef5ee",
+          bg: "#f4f2ee",
+          card: "#ffffff",
+          sep: "#eef0f4",
+          gray: "#8b90a0",
+          label: "#1c1f29",
+          ink: "#16181f",
+          blue: "#1f6ca6",
+          green: "#6fa386",
+          orange: "#ef9d63",
+          red: "#f08197",
+          purple: "#8f86e6",
+          pink: "#f08197",
+          teal: "#3aa6b8",
+          indigo: "#16517d",
+          yellow: "#efc25e",
+          peach: "#ef9d63",
+          apricot: "#efc25e",
+          sage: "#6fa386",
+          lav: "#8f86e6",
+          cream: "#f4f2ee",
         },
       },
       borderRadius: {
-        "ios-sm": "1.125rem", // 18px
-        ios: "1.75rem", // 28px
-        "ios-lg": "2.25rem", // 36px
+        "ios-sm": "1rem",    // 16px
+        ios: "1.5rem",       // 24px
+        "ios-lg": "1.875rem", // 30px
+        "ios-xl": "2.375rem", // 38px
       },
       boxShadow: {
-        // سایه‌های بسیار نرم با بلورِ بالا، اوپَسیتیِ کم و تهِ‌رنگِ نیلی
-        card: "0 2px 6px -2px rgba(76,70,160,0.10), 0 18px 42px -18px rgba(76,70,160,0.22)",
-        soft: "0 1px 2px rgba(76,70,160,0.05), 0 10px 28px -14px rgba(76,70,160,0.18)",
-        float: "0 30px 70px -24px rgba(76,70,160,0.32)",
-        glow: "0 12px 32px -10px rgba(120,110,250,0.5)",
+        card: "0 2px 6px -2px rgba(30,40,70,0.06), 0 18px 40px -22px rgba(30,40,70,0.26)",
+        soft: "0 1px 2px rgba(30,40,70,0.04), 0 6px 16px -10px rgba(30,40,70,0.18)",
+        float: "0 30px 70px -30px rgba(30,40,70,0.34)",
+        glow: "0 16px 30px -12px rgba(20,22,30,0.7)",
+        dark: "0 24px 50px -22px rgba(20,22,30,0.45)",
       },
       keyframes: {
         "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "sheet-up": {
@@ -57,14 +61,14 @@ const config: Config = {
         },
         float: {
           "0%,100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-6px)" },
+          "50%": { transform: "translateY(-9px)" },
         },
       },
       animation: {
-        "fade-up": "fade-up 0.4s cubic-bezier(0.16,1,0.3,1) both",
+        "fade-up": "fade-up 0.5s cubic-bezier(0.16,1,0.3,1) both",
         "sheet-up": "sheet-up 0.35s cubic-bezier(0.16,1,0.3,1) both",
         "scale-in": "scale-in 0.25s cubic-bezier(0.16,1,0.3,1) both",
-        float: "float 6s ease-in-out infinite",
+        float: "float 5s ease-in-out infinite",
       },
     },
   },

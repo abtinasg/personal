@@ -8,7 +8,7 @@ import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfi
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon, IDENTITY_ICONS } from "@/components/AppIcon";
 
-const COLORS = ["#8267f2", "#5b76f0", "#22c391", "#fb9a5b", "#fb7fa0", "#a96ff0", "#2cb8cf"];
+const COLORS = ["#16517d", "#1f6ca6", "#6fa386", "#ef9d63", "#f08197", "#8f86e6", "#3aa6b8"];
 
 export default function IdentitiesView() {
   const [items, setItems] = useState<Identity[]>([]);

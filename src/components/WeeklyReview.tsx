@@ -91,14 +91,14 @@ export default function WeeklyReview({ open, onClose }: { open: boolean; onClose
           )}
 
           {review.focus && (
-            <div className="card !p-4" style={{ background: "var(--ios-blue,#5b76f0)11" }}>
+            <div className="card !p-4" style={{ background: "var(--ios-blue,#1f6ca6)11" }}>
               <p className="font-bold text-[15px] mb-1 flex items-center gap-1.5"><span className="text-ios-blue"><AppIcon name="target" size={17} /></span> تمرکزِ هفته‌ی بعد</p>
               <p className="text-[14px] leading-7">{review.focus}</p>
             </div>
           )}
 
           {review.suggestion && (
-            <div className="rounded-2xl p-4 text-white" style={{ backgroundImage: "linear-gradient(135deg, #5b76f0, #8267f2)" }}>
+            <div className="rounded-2xl p-4 text-white" style={{ backgroundImage: "linear-gradient(135deg, #1f6ca6, #16517d)" }}>
               <p className="font-bold text-[15px] mb-1 flex items-center gap-1.5"><AppIcon name="idea" size={17} /> یک قدمِ کوچک</p>
               <p className="text-[14px] leading-7 opacity-95">{review.suggestion}</p>
             </div>

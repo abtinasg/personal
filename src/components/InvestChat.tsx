@@ -69,7 +69,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
                 className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-7 whitespace-pre-wrap ${
                   m.role === "user" ? "text-white" : "bg-black/[0.05] dark:bg-white/[0.08]"
                 }`}
-                style={m.role === "user" ? { backgroundImage: "linear-gradient(135deg, #22c391, #19a7c4)" } : undefined}
+                style={m.role === "user" ? { backgroundImage: "linear-gradient(135deg, #6fa386, #3aa6b8)" } : undefined}
               >
                 {m.content}
               </div>
@@ -98,7 +98,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
             onClick={() => send(input)}
             disabled={busy || !input.trim()}
             className="h-[46px] w-[46px] shrink-0 rounded-2xl text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
-            style={{ backgroundImage: "linear-gradient(135deg, #22c391, #19a7c4)" }}
+            style={{ backgroundImage: "linear-gradient(135deg, #6fa386, #3aa6b8)" }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2 11 13" />

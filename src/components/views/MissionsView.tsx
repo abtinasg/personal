@@ -91,7 +91,7 @@ export default function MissionsView() {
         onClick={() => setOpen(true)}
         className="!p-0 overflow-hidden text-white relative"
       >
-        <div className="p-5" style={{ backgroundImage: "linear-gradient(135deg, #8267f2, #5b76f0 60%, #2cb8cf)" }}>
+        <div className="p-5" style={{ backgroundImage: "linear-gradient(135deg, #16517d, #1f6ca6 60%, #3aa6b8)" }}>
           <div className="flex items-center gap-3">
             <span className="shrink-0"><AppIcon name="sparkles" size={32} /></span>
             <div className="flex-1">
