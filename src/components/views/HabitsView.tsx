@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa, todayISO, daysAgoISO } from "@/lib/format";
 import type { Habit, HabitLog, Identity } from "@/lib/types";
-import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
+import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, IconChip, useConfirm } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon, HABIT_ICONS } from "@/components/AppIcon";
 
@@ -105,12 +105,10 @@ export default function HabitsView() {
     const st = streak(h.id);
     const missedYesterday = !doneSet.get(h.id)?.has(yesterday) && !done && st === 0 && (doneSet.get(h.id)?.size || 0) > 0;
     return (
-      <Card key={h.id} className="flex items-center gap-3">
+      <Card key={h.id} className="card-flat flex items-center gap-3">
+        <IconChip icon={h.emoji} color={h.color} bg={`color-mix(in srgb, ${h.color} 14%, #fff)`} size={44} radius={14} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span style={{ color: h.color }}><AppIcon name={h.emoji} size={22} /></span>
-            <p className="font-bold truncate">{h.name}</p>
-          </div>
+          <p className="t-h3 truncate" style={{ fontSize: 15 }}>{h.name}</p>
           <p className="secondary text-[13px] mt-1 flex items-center gap-1">
             {st > 0 ? (
               <><span className="text-ios-orange"><AppIcon name="flame" size={14} /></span> {fa(st)} روز پیاپی</>
@@ -122,38 +120,32 @@ export default function HabitsView() {
           </p>
           {h.cue && <p className="secondary text-[12px] mt-0.5 flex items-center gap-1"><AppIcon name="cue" size={12} /> {h.cue}</p>}
           {h.min_version && !done && <p className="secondary text-[12px] mt-0.5 flex items-center gap-1"><AppIcon name="feather" size={12} /> حداقلش: {h.min_version}</p>}
-          <div className="flex gap-1.5 mt-2">
+          <div className="dots7">
             {last7.map((d) => {
               const ok = doneSet.get(h.id)?.has(d);
               return (
-                <span
-                  key={d}
-                  className="h-3 w-3 rounded-full"
-                  style={{ background: ok ? h.color : "color-mix(in srgb, var(--label) 12%, transparent)" }}
-                />
+                <i key={d} style={{ background: ok ? h.color : "rgba(22,24,31,0.10)" }} />
               );
             })}
           </div>
         </div>
 
         {edit ? (
-          <button onClick={() => remove(h)} className="text-ios-red text-[15px] font-medium px-2">حذف</button>
+          <button onClick={() => remove(h)} className="text-ios-red text-[15px] font-medium px-2 shrink-0">حذف</button>
         ) : (
           <button
             onClick={() => toggle(h)}
-            className="h-12 w-12 rounded-full flex items-center justify-center transition active:scale-90 shrink-0"
-            style={{
-              background: done ? h.color : "transparent",
-              border: done ? "none" : `2.5px solid ${h.color}`,
-              color: done ? "#fff" : h.color,
-            }}
+            className="toggle"
+            style={
+              done
+                ? { background: h.color, color: "#fff" }
+                : { background: "transparent", border: `2.5px solid ${h.color}`, color: h.color }
+            }
           >
             {done ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m5 12 4.5 4.5L19 7" />
-              </svg>
+              <AppIcon name="check" size={22} strokeWidth={3} />
             ) : (
-              <span className="text-[22px] leading-none">+</span>
+              <AppIcon name="plus" size={22} strokeWidth={2.6} />
             )}
           </button>
         )}

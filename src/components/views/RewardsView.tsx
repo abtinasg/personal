@@ -4,9 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa } from "@/lib/format";
 import type { Reward } from "@/lib/types";
-import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
+import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, Badge, Chip, useConfirm } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon } from "@/components/AppIcon";
+
+// نشان‌های مایل‌استونِ استریک — با رسیدن به هر آستانه باز می‌شوند.
+const STREAK_BADGES: { days: number; icon: string; ring: string; iconColor: string; label: string }[] = [
+  { days: 3, icon: "flame", ring: "linear-gradient(135deg,#efc25e,#ef9d63)", iconColor: "var(--peach)", label: "سه‌روزه" },
+  { days: 7, icon: "trophy", ring: "linear-gradient(135deg,#6fa386,#1f6ca6)", iconColor: "var(--sage)", label: "هفته‌ی کامل" },
+  { days: 14, icon: "star", ring: "linear-gradient(135deg,#8f86e6,#1f6ca6)", iconColor: "var(--lav)", label: "دو هفته" },
+  { days: 30, icon: "gem", ring: "linear-gradient(135deg,#f08197,#8f86e6)", iconColor: "var(--rose)", label: "یک ماه" },
+  { days: 60, icon: "celebrate", ring: "linear-gradient(135deg,#3aa6b8,#6fa386)", iconColor: "var(--teal)", label: "دو ماه" },
+];
 
 const REWARD_ICONS = ["gift", "trophy", "star", "sparkles", "fun", "celebrate", "heart", "sun", "rocket"];
 const COLORS = ["#ef9d63", "#f08197", "#8f86e6", "#16517d", "#1f6ca6", "#3aa6b8", "#6fa386"];
@@ -98,6 +107,33 @@ export default function RewardsView() {
           </p>
         </div>
       </Card>
+
+      {/* نشان‌ها — مایل‌استونِ استریک */}
+      {(() => {
+        const unlocked = STREAK_BADGES.filter((b) => streak >= b.days).length;
+        return (
+          <>
+            <div className="flex items-center justify-between px-1 mb-1 mt-5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[18px] font-extrabold tracking-tight" style={{ color: "var(--ink)" }}>نشان‌ها</h2>
+                <Chip color="var(--ink)" solid>{fa(unlocked)}</Chip>
+              </div>
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto -mx-5 px-5 pb-1.5">
+              {STREAK_BADGES.map((b) => (
+                <Badge
+                  key={b.days}
+                  ring={b.ring}
+                  icon={b.icon}
+                  iconColor={b.iconColor}
+                  label={streak >= b.days ? b.label : `${fa(b.days)} روز`}
+                  locked={streak < b.days}
+                />
+              ))}
+            </div>
+          </>
+        );
+      })()}
 
       {/* بنرِ جشن بعد از دریافت */}
       {justClaimed && (

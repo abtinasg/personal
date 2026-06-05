@@ -52,6 +52,12 @@ export default function HealthView({ profile }: { profile: Profile | null }) {
     load();
   }
 
+  async function delWeight(id: string) {
+    setMetrics((m) => m.filter((x) => x.id !== id));
+    await apiSend(`/api/health?id=${id}`, "DELETE");
+    load();
+  }
+
   if (loading) return <div className="pt-16 flex justify-center"><Spinner /></div>;
 
   const peakSteps = weekSteps.reduce((mx, d) => Math.max(mx, d.v), 0);
