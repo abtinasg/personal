@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa, todayISO, daysAgoISO, jDate, jDateShort } from "@/lib/format";
 import type { Meal, Profile } from "@/lib/types";
-import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, Segmented, SectionTitle } from "@/components/ui";
+import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, Segmented, SectionTitle, IconChip } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -12,6 +12,13 @@ const MEAL_LABELS: Record<string, string> = {
   lunch: "ناهار",
   dinner: "شام",
   snack: "میان‌وعده",
+};
+
+const MEAL_TINT: Record<string, string> = {
+  breakfast: "var(--yellow)",
+  lunch: "var(--peach)",
+  dinner: "var(--lav)",
+  snack: "var(--sage)",
 };
 
 export default function CaloriesView({ profile, onProfileChange }: { profile: Profile | null; onProfileChange?: () => void }) {
@@ -101,20 +108,21 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
         </button>
       </div>
 
-      <Card className="flex items-center gap-5">
-        <Ring progress={consumed / goal} color="#ef9d63" size={132} stroke={14}>
-          <span className="text-[30px] font-extrabold leading-none">{fa(consumed)}</span>
-          <span className="secondary text-[12px] mt-1">از {fa(goal)}</span>
+      <Card className="flex flex-col items-center gap-4 !py-6">
+        <Ring progress={consumed / goal} color="var(--peach)" size={156} stroke={15}>
+          <span className="num" style={{ fontSize: 38, color: "var(--ink)" }}>{fa(Math.abs(remaining))}</span>
+          <span className="t-cap mt-1">{remaining < 0 ? "کالری بیش از هدف" : "کالری باقی‌مانده"}</span>
         </Ring>
-        <div className="flex-1 space-y-2">
-          <Stat label="باقی‌مانده" value={`${fa(Math.abs(remaining))} کالری`} tone={remaining < 0 ? "red" : "green"} hint={remaining < 0 ? "بیشتر از هدف" : "تا هدف"} />
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <Macro label="پروتئین" v={macro.p} color="#1f6ca6" />
-            <Macro label="کربو" v={macro.c} color="#ef9d63" />
-            <Macro label="چربی" v={macro.f} color="#f08197" />
-          </div>
+        <div className="flex w-full justify-around">
+          <MacroBar label="پروتئین" v={macro.p} color="var(--blue)" />
+          <MacroBar label="کربوهیدرات" v={macro.c} color="var(--peach)" />
+          <MacroBar label="چربی" v={macro.f} color="var(--sage)" />
         </div>
       </Card>
+
+      <Button variant="dark" onClick={() => setOpen(true)} className="w-full flex items-center justify-center gap-2">
+        <AppIcon name="sparkles" size={18} /> با عکس یا یک جمله، وعده ثبت کن
+      </Button>
 
       <Card onClick={() => setPlanOpen(true)} className="flex items-center gap-3">
         <span className="h-11 w-11 rounded-2xl bg-ios-green/15 text-ios-green flex items-center justify-center shrink-0"><AppIcon name="calculator" size={22} /></span>
@@ -158,19 +166,24 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
       ) : meals.length === 0 ? (
         <Card><EmptyState icon="meal" title="هنوز چیزی ثبت نکردی" sub="اولین وعده‌ت رو با دکمه‌ی + اضافه کن" /></Card>
       ) : (
-        <Card className="!p-0 overflow-hidden">
-          {meals.map((m) => (
-            <div key={m.id} className="hairline flex items-center gap-3 px-4 py-3">
-              <span className="text-ios-orange shrink-0"><AppIcon name={m.meal_type} size={24} /></span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{m.name}</p>
-                <p className="secondary text-[13px]">{MEAL_LABELS[m.meal_type]}</p>
-              </div>
-              <span className="font-bold text-ios-orange whitespace-nowrap">{fa(m.calories)} کcal</span>
-              <button onClick={() => remove(m.id)} className="text-ios-red/70 active:opacity-50 text-[20px] leading-none px-1">×</button>
-            </div>
-          ))}
-        </Card>
+        <div className="space-y-3">
+          {meals.map((m) => {
+            const c = MEAL_TINT[m.meal_type] || "var(--peach)";
+            return (
+              <Card key={m.id} className="card-flat flex items-center gap-3">
+                <IconChip icon={m.meal_type} color={c} bg={`color-mix(in srgb, ${c} 15%, #fff)`} size={42} radius={14} />
+                <div className="flex-1 min-w-0">
+                  <p className="t-h3 truncate" style={{ fontSize: 15 }}>{m.name}</p>
+                  <p className="t-cap mt-0.5">{MEAL_LABELS[m.meal_type]}</p>
+                </div>
+                <p className="num whitespace-nowrap" style={{ fontSize: 17, color: "var(--ink)" }}>
+                  {fa(m.calories)}<span className="t-cap" style={{ fontWeight: 500 }}> کالری</span>
+                </p>
+                <button onClick={() => remove(m.id)} className="text-ios-red/70 active:opacity-50 text-[20px] leading-none px-1 shrink-0">×</button>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       <AddMealSheet open={open} onClose={() => setOpen(false)} date={date} onAdded={load} />
@@ -521,12 +534,14 @@ export function AddButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function Stat({ label, value, tone, hint }: { label: string; value: string; tone?: "red" | "green"; hint?: string }) {
+function MacroBar({ label, v, color }: { label: string; v: number; color: string }) {
   return (
-    <div>
-      <p className="secondary text-[13px]">{label}</p>
-      <p className={`text-[20px] font-bold ${tone === "red" ? "text-ios-red" : tone === "green" ? "text-ios-green" : ""}`}>{value}</p>
-      {hint && <p className="secondary text-[11px]">{hint}</p>}
+    <div className="text-center">
+      <div className="mx-auto mb-2 h-[5px] w-[54px] overflow-hidden rounded-full" style={{ background: "rgba(22,24,31,0.08)" }}>
+        <div className="h-full rounded-full" style={{ width: "70%", background: color }} />
+      </div>
+      <p className="num" style={{ fontSize: 16, color }}>{fa(Math.round(v))}g</p>
+      <p className="t-cap mt-0.5">{label}</p>
     </div>
   );
 }
