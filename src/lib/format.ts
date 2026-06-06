@@ -5,6 +5,45 @@ export function faDigits(input: string | number): string {
   return String(input).replace(/[0-9]/g, (d) => FA_DIGITS[Number(d)]);
 }
 
+/** ارقام فارسی و عربی را به انگلیسی تبدیل می‌کند (برای پردازشِ ورودیِ کاربر). */
+export function toEnDigits(input: string): string {
+  return String(input)
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+
+/**
+ * هر رشته‌ی ورودی (با ارقامِ فارسی/عربی و جداکننده‌ی هزارگان) را به عدد تبدیل می‌کند.
+ * مثلاً «۲۰۰٬۰۰۰» یا «۲۰۰,۰۰۰» → 200000.
+ */
+export function parseNum(input: string | number | null | undefined): number {
+  if (typeof input === "number") return input;
+  if (input == null) return 0;
+  const clean = toEnDigits(input).replace(/[^\d.-]/g, "");
+  const n = parseFloat(clean);
+  return isNaN(n) ? 0 : n;
+}
+
+/**
+ * رشته‌ی ورودیِ پول را با ارقامِ فارسی و جداکننده‌ی هزارگان قالب‌بندی می‌کند.
+ * فقط ارقامِ صحیح را نگه می‌دارد: «۲۰۰۰۰۰» → «۲۰۰٬۰۰۰».
+ */
+export function groupFa(input: string): string {
+  const digits = toEnDigits(input).replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return faDigits(Number(digits).toLocaleString("en-US"));
+}
+
+/** عددِ تومان را خوانا نشان می‌دهد: «۲۰۰ هزار تومان»، «۱٫۵ میلیون تومان». */
+export function tomanWords(n: number): string {
+  if (n == null || isNaN(n) || n === 0) return "";
+  const trim = (v: number) => faDigits(v.toFixed(1).replace(/\.0$/, "").replace(".", "٫"));
+  if (n >= 1e9) return `${trim(n / 1e9)} میلیارد تومان`;
+  if (n >= 1e6) return `${trim(n / 1e6)} میلیون تومان`;
+  if (n >= 1e3) return `${trim(n / 1e3)} هزار تومان`;
+  return `${fa(n)} تومان`;
+}
+
 /** عدد را با جداکننده‌ی هزارگان و ارقام فارسی نشان می‌دهد. */
 export function fa(n: number, maximumFractionDigits = 0): string {
   if (n == null || isNaN(n)) return faDigits(0);

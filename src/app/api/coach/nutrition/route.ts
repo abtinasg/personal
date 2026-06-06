@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
 import { daysAgoISO } from "@/lib/format";
 
@@ -40,6 +41,8 @@ type NutritionPlan = {
 export async function GET() {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "coach_nutrition");
+  if ("error" in guard) return guard.error;
 
   const thisYear = new Date().getFullYear();
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiSend } from "@/lib/client";
+import { apiSend, ApiError } from "@/lib/client";
 import { Sheet, Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
+import { AiError } from "@/components/AiError";
 
 type Saved = { type: string; label: string };
 type Msg = { role: "user" | "assistant"; content: string; saved?: Saved[]; image?: string };
@@ -44,7 +45,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<unknown>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -55,7 +56,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
   async function send(text: string, image?: string) {
     const content = text.trim() || (image ? "این عکسِ غذامه، کالریش رو ثبت کن." : "");
     if ((!content && !image) || busy) return;
-    setErr("");
+    setErr(null);
     const userMsg: Msg = { role: "user", content, ...(image ? { image } : {}) };
     const next = [...msgs, userMsg];
     setMsgs(next);
@@ -71,7 +72,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
       );
       setMsgs((m) => [...m, { role: "assistant", content: reply, saved }]);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "خطا در ارتباط با مربی.");
+      setErr(e instanceof ApiError ? e : new Error("خطا در ارتباط با مربی."));
     } finally {
       setBusy(false);
     }
@@ -81,12 +82,12 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
     const file = e.target.files?.[0];
     e.target.value = ""; // اجازه‌ی انتخابِ دوباره‌ی همان فایل
     if (!file || busy) return;
-    setErr("");
+    setErr(null);
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       await send(input, dataUrl);
     } catch (err) {
-      setErr(err instanceof Error ? err.message : "خطا در پردازش عکس.");
+      setErr(err instanceof ApiError ? err : new Error("خطا در پردازش عکس."));
     }
   }
 
@@ -150,7 +151,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
           )}
         </div>
 
-        {err && <p className="text-ios-red text-[13px] px-1 pb-1">{err}</p>}
+        <AiError error={err} className="px-1 pb-1" />
 
         <div className="shrink-0 flex items-end gap-2 pt-2 border-t border-[var(--sep)]">
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickImage} />

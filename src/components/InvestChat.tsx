@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiSend } from "@/lib/client";
+import { apiSend, ApiError } from "@/lib/client";
 import { Sheet, Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
+import { AiError } from "@/components/AiError";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -17,7 +18,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<unknown>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
   async function send(text: string) {
     const content = text.trim();
     if (!content || busy) return;
-    setErr("");
+    setErr(null);
     const next = [...msgs, { role: "user" as const, content }];
     setMsgs(next);
     setInput("");
@@ -36,7 +37,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
       const { reply } = await apiSend<{ reply: string }>("/api/coach/invest", "POST", { messages: next });
       setMsgs((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "خطا در ارتباط با مشاور.");
+      setErr(e instanceof ApiError ? e : new Error("خطا در ارتباط با مشاور."));
     } finally {
       setBusy(false);
     }
@@ -83,7 +84,7 @@ export default function InvestChat({ open, onClose }: { open: boolean; onClose: 
           )}
         </div>
 
-        {err && <p className="text-ios-red text-[13px] px-1 pb-1">{err}</p>}
+        <AiError error={err} className="px-1 pb-1" />
 
         <div className="shrink-0 flex items-end gap-2 pt-2 border-t border-[var(--sep)]">
           <textarea

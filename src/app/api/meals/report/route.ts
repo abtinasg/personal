@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiText } from "@/lib/openrouter";
 
 export const runtime = "nodejs";
@@ -22,6 +23,8 @@ const TYPE_FA: Record<string, string> = {
 export async function GET(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "meal_report");
+  if ("error" in guard) return guard.error;
 
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");

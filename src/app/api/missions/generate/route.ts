@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
 
 export const runtime = "nodejs";
@@ -27,6 +28,8 @@ const HABIT_ICONS = ["check", "strength", "study", "calm", "run", "water", "sala
 export async function POST(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "mission_generate");
+  if ("error" in guard) return guard.error;
   const b = await req.json().catch(() => ({}));
   const goal = String(b.goal || "").trim();
   if (!goal) return bad("هدفت رو بنویس تا ماموریت بسازم.");

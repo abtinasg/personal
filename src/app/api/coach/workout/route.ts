@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
 import { todayISO, daysAgoISO } from "@/lib/format";
 
@@ -130,6 +131,8 @@ export async function GET() {
 export async function POST() {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "coach_workout");
+  if ("error" in guard) return guard.error;
 
   const today = todayISO();
   const thisYear = new Date().getFullYear();

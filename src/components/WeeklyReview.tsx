@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/client";
+import { apiGet, ApiError } from "@/lib/client";
 import { fa, money } from "@/lib/format";
 import { Sheet, Spinner, EmptyState } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
+import { AiError } from "@/components/AiError";
 import type { WeeklyReview as Review } from "@/app/api/coach/weekly/route";
 
 type Stats = {
@@ -27,18 +28,18 @@ type Resp = { hasData: boolean; stats?: Stats; review?: Review };
 
 export default function WeeklyReview({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<unknown>(null);
   const [data, setData] = useState<Resp | null>(null);
 
   useEffect(() => {
     if (!open) return;
     let alive = true;
     setLoading(true);
-    setErr("");
+    setErr(null);
     setData(null);
     apiGet<Resp>("/api/coach/weekly")
       .then((r) => { if (alive) setData(r); })
-      .catch((e) => { if (alive) setErr(e instanceof Error ? e.message : "خطا در تهیه‌ی مرور."); })
+      .catch((e) => { if (alive) setErr(e instanceof ApiError ? e : new Error("خطا در تهیه‌ی مرور.")); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [open]);
@@ -55,7 +56,7 @@ export default function WeeklyReview({ open, onClose }: { open: boolean; onClose
         </div>
       )}
 
-      {err && !loading && <p className="text-ios-red text-[14px] py-4">{err}</p>}
+      {!loading && <AiError error={err} className="py-4" />}
 
       {!loading && !err && data && !data.hasData && (
         <EmptyState icon="chart" title="هنوز داده‌ای برای مرور نیست" sub="چند روز که عادت، کالری یا خرجت رو ثبت کنی، اینجا یک مرورِ کامل می‌گیری." />

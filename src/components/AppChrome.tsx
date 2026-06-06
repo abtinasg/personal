@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/client";
-import { jDate } from "@/lib/format";
+import { jDate, parseNum, groupFa } from "@/lib/format";
 import type { Profile } from "@/lib/types";
 import { Icon } from "@/components/icons";
-import { Sheet, Field, Button, Spinner, Chevron } from "@/components/ui";
+import { Sheet, Field, MoneyInput, Button, Spinner, Chevron } from "@/components/ui";
 import { AppProvider } from "@/components/AppContext";
 import QuickCapture from "@/components/QuickCapture";
+import Onboarding from "@/components/Onboarding";
 
 /** تب‌های اصلی (مسیرهای واقعیِ روتر). دکمه‌ی وسط «ثبتِ سریع» است و مسیر ندارد. */
 const NAV: { href: string; label: string; icon: string }[] = [
@@ -69,8 +70,20 @@ export default function AppChrome({
   const isSub = SUB_ROUTES.has(pathname);
   const title = TITLES[pathname];
 
+  // کاربرِ تازه‌وارد هنوز مشخصاتِ پایه را نداده — تا تمام‌شدنِ انبوردینگ، اپ را پشتِ آن نشان نده.
+  const needsOnboarding = profile != null && !profile.onboarded;
+
   return (
     <AppProvider value={{ profile, reloadProfile: loadProfile, refreshKey, username, displayName }}>
+      {needsOnboarding && (
+        <Onboarding
+          initialName={displayName === username ? "" : displayName}
+          onDone={() => {
+            loadProfile();
+            router.refresh();
+          }}
+        />
+      )}
       <div className="min-h-[100dvh] mx-auto max-w-md pb-28">
         {/* هدر */}
         <header className="sticky top-0 z-30 glass px-5 pt-[max(14px,env(safe-area-inset-top))] pb-3">
@@ -207,7 +220,7 @@ function SettingsSheet({
   useEffect(() => {
     if (profile) {
       setCal(String(profile.daily_calorie_goal || ""));
-      setBudget(String(profile.monthly_budget || ""));
+      setBudget(profile.monthly_budget ? groupFa(String(profile.monthly_budget)) : "");
       setWater(String(profile.water_goal_ml || ""));
       setWeight(profile.weight_goal ? String(profile.weight_goal) : "");
     }
@@ -217,10 +230,10 @@ function SettingsSheet({
     setSaving(true);
     try {
       await apiSend("/api/profile", "PUT", {
-        daily_calorie_goal: Number(cal) || 0,
-        monthly_budget: Number(budget) || 0,
-        water_goal_ml: Number(water) || 0,
-        weight_goal: weight ? Number(weight) : null,
+        daily_calorie_goal: parseNum(cal) || 0,
+        monthly_budget: parseNum(budget) || 0,
+        water_goal_ml: parseNum(water) || 0,
+        weight_goal: weight ? parseNum(weight) : null,
       });
       onSaved();
       onClose();
@@ -246,7 +259,7 @@ function SettingsSheet({
           <input className="ios-input" inputMode="numeric" value={cal} onChange={(e) => setCal(e.target.value)} placeholder="۲۰۰۰" />
         </Field>
         <Field label="بودجه‌ی ماهانه (تومان)">
-          <input className="ios-input" inputMode="numeric" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="۱۰٬۰۰۰٬۰۰۰" />
+          <MoneyInput value={budget} onChange={setBudget} placeholder="۱۰٬۰۰۰٬۰۰۰" />
         </Field>
         <Field label="هدف آب روزانه (میلی‌لیتر)">
           <input className="ios-input" inputMode="numeric" value={water} onChange={(e) => setWater(e.target.value)} placeholder="۲۰۰۰" />
@@ -259,6 +272,14 @@ function SettingsSheet({
       <Button onClick={save} disabled={saving} className="w-full mt-5 flex items-center justify-center gap-2">
         {saving && <Spinner />} ذخیره
       </Button>
+      <a
+        href="/wallet"
+        onClick={onClose}
+        className="mt-3 flex w-full items-center justify-between rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 text-[16px] font-semibold active:opacity-60"
+      >
+        <span>کیف پول و اعتبار</span>
+        <Chevron dir="forward" size={20} className="secondary" />
+      </a>
       {isAdmin && (
         <a
           href="/admin"

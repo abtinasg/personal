@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiText, type AIMessage } from "@/lib/openrouter";
 import { getMarketRates } from "@/lib/market";
 import { monthKey, monthStart } from "@/lib/format";
@@ -19,6 +20,8 @@ function fmt(n: number): string {
 export async function POST(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "coach_invest");
+  if ("error" in guard) return guard.error;
   const b = await req.json().catch(() => ({}));
 
   const incoming = Array.isArray(b.messages) ? b.messages : [];

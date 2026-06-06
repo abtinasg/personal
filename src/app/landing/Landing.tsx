@@ -6,8 +6,8 @@ import { Logo } from "@/components/icons";
 import { AppIcon } from "@/components/AppIcon";
 import { Ring } from "@/components/ui";
 
-const BRAND = "یک‌درصد";
-const SLOGAN = "هر روز یک‌درصد بهتر";
+const BRAND = "امروز";
+const SLOGAN = "همین امروز";
 
 /* نصبِ PWA ─────────────────────────────────────────────────
    رویدادِ beforeinstallprompt ممکن است پیش از mountـِ کامپوننت‌ها
@@ -106,8 +106,8 @@ const FEATURES: Feature[] = [
 
 const STEPS: { icon: string; title: string; desc: string; color: string }[] = [
   { icon: "star", color: "#8267f2", title: "هویت‌ات را انتخاب کن", desc: "تصمیم بگیر می‌خواهی چه‌جور آدمی باشی — ورزشکار، اهلِ مطالعه، آرام، منظم." },
-  { icon: "vote", color: "#5b76f0", title: "هر روز یک رأی بده", desc: "یک عادتِ کوچک، یک ماموریتِ کوچک. همین. فشار نیست، فقط یک‌درصد." },
-  { icon: "chart", color: "#22c391", title: "پیشرفتِ مرکب را ببین", desc: "حلقه‌ها پر می‌شوند، روزها پیاپی می‌شوند و یک‌درصدها روی هم جمع می‌شوند." },
+  { icon: "vote", color: "#5b76f0", title: "هر روز یک قدم بردار", desc: "یک عادتِ کوچک، یک ماموریتِ کوچک. همین. فشار نیست، فقط همین امروز." },
+  { icon: "chart", color: "#22c391", title: "پیشرفتِ مرکب را ببین", desc: "حلقه‌ها پر می‌شوند، روزها پیاپی می‌شوند و «امروز»ها روی هم جمع می‌شوند." },
 ];
 
 const COACH_POINTS: { icon: string; text: string }[] = [
@@ -199,14 +199,14 @@ function Hero() {
           </span>
 
           <h1 className="font-display font-bold tracking-tight leading-[0.92] text-[clamp(56px,9vw,116px)] animate-fade-up [animation-delay:80ms]">
-            <span className="block secondary/0 text-[var(--label)]">هر روز</span>
-            <span className="block grad-text">یک‌درصد</span>
-            <span className="block">بهتر.</span>
+            <span className="block secondary/0 text-[var(--label)]">زندگی،</span>
+            <span className="block grad-text">همین امروز</span>
+            <span className="block">است.</span>
           </h1>
 
           <p className="secondary text-[17px] sm:text-[19px] leading-9 mt-7 max-w-xl mx-auto lg:mx-0 animate-fade-up [animation-delay:160ms]">
-            «یک‌درصد» یک رأیِ کوچکِ روزانه به آدمی است که می‌خواهی بشوی. هویت‌ها، عادت‌های
-            اتمی، کالری، بودجه و سلامتی — همه یک‌جا، آرام و زیبا، با یک مربیِ همیشه‌همراه.
+            «امروز» یک قدمِ کوچکِ روزانه به سمتِ آدمی است که می‌خواهی بشوی. عمرت جمعِ همین
+            «امروز»هاست — عادت‌های اتمی، کالری، بودجه و سلامتی، همه یک‌جا، با یک مربیِ همیشه‌همراه.
           </p>
 
           <div className="mt-9 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3 animate-fade-up [animation-delay:240ms]">
@@ -239,7 +239,7 @@ function Hero() {
   );
 }
 
-/** کارتِ پیش‌نمایشِ اپ — با همان زبانِ بصریِ خودِ «یک‌درصد». */
+/** کارتِ پیش‌نمایشِ اپ — با همان زبانِ بصریِ خودِ «امروز». */
 function HeroPreview() {
   return (
     <div className="relative mx-auto w-full max-w-sm">
@@ -539,7 +539,7 @@ function FeatureCard({ f, large }: { f: Feature; large?: boolean }) {
           <h3 className="font-display text-[30px] sm:text-[36px] font-bold leading-none">{f.title}</h3>
           <p className="secondary text-[16px] leading-8 mt-3 max-w-sm">{f.desc}</p>
         </div>
-        <p className="relative text-ios-indigo text-[14px] font-semibold mt-6">قلبِ «یک‌درصد» ↙</p>
+        <p className="relative text-ios-indigo text-[14px] font-semibold mt-6">قلبِ «امروز» ↙</p>
       </div>
     );
   }
@@ -575,7 +575,7 @@ function Coach() {
                 یک مربیِ همیشه‌همراه
               </h2>
               <p className="text-[17px] leading-9 mt-4 text-white/90 max-w-md">
-                «یک‌درصد» فقط ثبت‌کننده نیست؛ مثلِ یک مربیِ واقعی هر روز کنارت است — جلوی
+                «امروز» فقط ثبت‌کننده نیست؛ مثلِ یک مربیِ واقعی هر روز کنارت است — جلوی
                 پایت یک قدمِ بعدیِ روشن می‌گذارد و وقتی گیر کردی، باهات حرف می‌زند.
               </p>
             </div>
@@ -671,7 +671,7 @@ function FinalCTA() {
               <Logo size={34} />
             </span>
             <h2 className="font-display text-[44px] sm:text-[64px] font-bold tracking-tight leading-[0.95]">
-              امروز، اولین یک‌درصدت را بساز
+              همین امروز، اولین قدمت را بردار
             </h2>
             <p className="text-[17px] sm:text-[19px] text-white/90 mt-4 max-w-lg mx-auto leading-9">
               بهترین روزِ شروع، همین امروز است. در کمتر از یک دقیقه واردِ مسیرِ شدنت شو.
@@ -959,7 +959,7 @@ function InstallHelp({ platform, onClose }: { platform: Platform; onClose: () =>
 const INSTALL_STEPS: { icon: string; title: string; desc: string; color: string }[] = [
   { icon: "download", color: "#5b76f0", title: "«نصب» را بزن", desc: "یک ضربه روی اندروید و کروم؛ روی آیفون از «افزودن به صفحهٔ خانه»." },
   { icon: "phone", color: "#8267f2", title: "روی صفحهٔ خانه می‌نشیند", desc: "مثلِ یک اپِ واقعی — تمام‌صفحه، سریع و بدونِ نوارِ مرورگر." },
-  { icon: "vote", color: "#22c391", title: "اولین رأیت را بده", desc: "با Face ID یا Touch ID وارد شو و همین امروز یک‌درصدت را بساز." },
+  { icon: "vote", color: "#22c391", title: "اولین قدمت را بردار", desc: "با Face ID یا Touch ID وارد شو و همین امروز شروع کن." },
 ];
 
 function Install() {
