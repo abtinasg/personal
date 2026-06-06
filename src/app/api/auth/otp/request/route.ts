@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   const db = getServiceClient();
 
-  // ضدِاسپم: اگر کدِ قبلی به‌تازگی ارسال شده، اجازه نده.
+  // ضدِاسپم + ذخیرهٔ کد — هر دو در یک query
   const { data: existing } = await db
     .from("phone_otps")
     .select("last_sent_at")
