@@ -19,7 +19,7 @@ const markazi = Markazi_Text({
 const appName = process.env.NEXT_PUBLIC_APP_NAME || "امروز";
 
 export const metadata: Metadata = {
-  title: { default: `${appName} — همین امروز`, template: `%s · ${appName}` },
+  title: { default: `40411649`, template: `%s · ${appName}` },
   description:
     "امروز: عمرت جمعِ همین «امروز»هاست. عادت‌های اتمی، کالری با هوش مصنوعی، بودجه، سلامتی و یک مربیِ همیشه‌همراه — همین امروز شروع کن، با ورودِ بی‌رمز با پسکی.",
   appleWebApp: { capable: true, statusBarStyle: "default", title: appName },
