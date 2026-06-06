@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
 import { todayISO, daysAgoISO } from "@/lib/format";
 
@@ -31,6 +32,8 @@ type WeeklyStats = {
 export async function GET() {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "coach_weekly");
+  if ("error" in guard) return guard.error;
 
   const today = todayISO();
   const weekAgo = daysAgoISO(6);

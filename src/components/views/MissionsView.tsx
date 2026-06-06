@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiGet, apiSend } from "@/lib/client";
+import { apiGet, apiSend, ApiError } from "@/lib/client";
 import { fa, todayISO, jDateShort } from "@/lib/format";
 import type { Habit, HabitLog, Mission } from "@/lib/types";
 import type { MissionPlan } from "@/app/api/missions/generate/route";
 import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
+import { AiError } from "@/components/AiError";
 
 function daysLeft(end_on: string | null): number | null {
   if (!end_on) return null;
@@ -263,7 +264,7 @@ function MissionCreatorSheet({ open, onClose, onDone }: { open: boolean; onClose
   const [plan, setPlan] = useState<MissionPlan | null>(null);
   const [phase, setPhase] = useState<"input" | "review">("input");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<unknown>(null);
 
   function reset() {
     setGoal(""); setPlan(null); setPhase("input"); setErr(null); setBusy(false);
@@ -281,7 +282,7 @@ function MissionCreatorSheet({ open, onClose, onDone }: { open: boolean; onClose
       setPlan(plan);
       setPhase("review");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "خطا در ساخت ماموریت");
+      setErr(e instanceof ApiError ? e : new Error("خطا در ساخت ماموریت"));
     } finally {
       setBusy(false);
     }
@@ -295,7 +296,7 @@ function MissionCreatorSheet({ open, onClose, onDone }: { open: boolean; onClose
       onDone();
       close();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "خطا در ذخیره‌ی ماموریت");
+      setErr(e instanceof ApiError ? e : new Error("خطا در ذخیره‌ی ماموریت"));
       setBusy(false);
     }
   }
@@ -316,7 +317,7 @@ function MissionCreatorSheet({ open, onClose, onDone }: { open: boolean; onClose
           <p className="secondary text-[13px] leading-relaxed">
             بر پایه‌ی «عادت‌های اتمی» یک ماموریت با هویت، نقطه‌عطف‌ها و عادت‌های روزانه‌ی کوچک برات طراحی می‌شه. می‌تونی قبل از ساخت ببینیش.
           </p>
-          {err && <p className="text-ios-red text-[14px]">{err}</p>}
+          <AiError error={err} />
           <Button onClick={generate} disabled={busy || !goal.trim()} className="w-full flex items-center justify-center gap-2">
             {busy ? <><Spinner /> در حال طراحی…</> : <><AppIcon name="sparkles" size={18} /> طراحی ماموریت</>}
           </Button>
@@ -348,7 +349,7 @@ function PlanReview({
   onBack: () => void;
   onApply: () => void;
   busy: boolean;
-  err: string | null;
+  err: unknown;
 }) {
   return (
     <div className="space-y-4 pb-2">
@@ -431,7 +432,7 @@ function PlanReview({
         </div>
       )}
 
-      {err && <p className="text-ios-red text-[14px]">{err}</p>}
+      <AiError error={err} />
 
       <div className="flex gap-2 pt-1">
         <Button variant="ghost" onClick={onBack} disabled={busy} className="flex-1">دوباره</Button>

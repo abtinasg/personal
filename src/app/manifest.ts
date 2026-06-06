@@ -1,18 +1,18 @@
 import type { MetadataRoute } from "next";
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME || "یک‌درصد";
+const appName = process.env.NEXT_PUBLIC_APP_NAME || "امروز";
 
 /**
- * مانیفستِ PWA — تا «یک‌درصد» واقعاً روی گوشی نصب‌شدنی باشد.
+ * مانیفستِ PWA — تا «امروز» واقعاً روی گوشی نصب‌شدنی باشد.
  * Next این فایل را به‌صورت /manifest.webmanifest سرو می‌کند و
  * تگِ <link rel="manifest"> را خودکار در <head> می‌گذارد.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${appName} — هر روز یک‌درصد بهتر`,
+    name: `${appName} — همین امروز`,
     short_name: appName,
     description:
-      "هویت‌ات را بساز و هر روز یک‌درصد بهتر شو: عادت‌های اتمی، کالریِ هوشمند، بودجه، سلامتی و یک مربیِ همیشه‌همراه.",
+      "عمرت جمعِ همین «امروز»هاست: عادت‌های اتمی، کالریِ هوشمند، بودجه، سلامتی و یک مربیِ همیشه‌همراه.",
     lang: "fa",
     dir: "rtl",
     start_url: "/",

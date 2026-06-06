@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { apiSend } from "@/lib/client";
+import { apiSend, ApiError } from "@/lib/client";
 import { Sheet, Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
+import { AiError } from "@/components/AiError";
 
 type Saved = { type: string; label: string };
 
@@ -25,13 +26,13 @@ export default function QuickCapture({
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<unknown>(null);
   const [saved, setSaved] = useState<Saved[]>([]);
   const [note, setNote] = useState("");
 
   function reset() {
     setText("");
-    setErr("");
+    setErr(null);
     setSaved([]);
     setNote("");
   }
@@ -39,7 +40,7 @@ export default function QuickCapture({
   async function submit(value: string) {
     const content = value.trim();
     if (!content || busy) return;
-    setErr("");
+    setErr(null);
     setSaved([]);
     setNote("");
     setBusy(true);
@@ -52,7 +53,7 @@ export default function QuickCapture({
         onSaved?.();
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "ثبت نشد، دوباره امتحان کن.");
+      setErr(e instanceof ApiError ? e : new Error("ثبت نشد، دوباره امتحان کن."));
     } finally {
       setBusy(false);
     }
@@ -97,7 +98,7 @@ export default function QuickCapture({
         ))}
       </div>
 
-      {err && <p className="text-ios-red text-[13px] mt-3">{err}</p>}
+      <AiError error={err} className="mt-3" />
 
       {saved.length > 0 && (
         <div className="mt-4 space-y-2">

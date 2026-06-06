@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiText, type AIMessage } from "@/lib/openrouter";
 import { userSnapshot } from "@/lib/coach";
 import { captureFromText, captureMealFromImage, looksLikeIntake, type SavedItem } from "@/lib/capture";
@@ -8,6 +9,8 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "coach_chat");
+  if ("error" in guard) return guard.error;
   const b = await req.json().catch(() => ({}));
 
   const incoming = Array.isArray(b.messages) ? b.messages : [];

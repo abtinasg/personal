@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet, apiSend } from "@/lib/client";
+import { apiGet, apiSend, ApiError } from "@/lib/client";
+import { AiError } from "@/components/AiError";
 import { fa } from "@/lib/format";
 import type {
   WorkoutPlan,
@@ -62,7 +63,7 @@ export default function WorkoutView() {
   const [hasBody, setHasBody] = useState(true);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<unknown>(null);
   const [editOpen, setEditOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -75,7 +76,7 @@ export default function WorkoutView() {
       setHasBody(res.has_body);
       setPlan(res.plan);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "خطا در دریافت اطلاعات.");
+      setErr(e instanceof ApiError ? e : new Error("خطا در دریافت اطلاعات."));
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export default function WorkoutView() {
   }, [load]);
 
   const generate = useCallback(async () => {
-    setErr("");
+    setErr(null);
     setGenerating(true);
     try {
       const res = await apiSend<{ plan?: WorkoutPlan; needs?: string[] }>("/api/coach/workout", "POST");
@@ -98,7 +99,7 @@ export default function WorkoutView() {
         setNeeds([]);
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "ساخت برنامه با خطا روبه‌رو شد.");
+      setErr(e instanceof ApiError ? e : new Error("ساخت برنامه با خطا روبه‌رو شد."));
     } finally {
       setGenerating(false);
     }
@@ -153,7 +154,7 @@ export default function WorkoutView() {
             <button onClick={() => setEditOpen(true)} className="text-ios-blue text-[14px] font-medium active:opacity-60 shrink-0">ویرایش</button>
           </Card>
 
-          {err && <p className="text-ios-red text-[13px] px-1">{err}</p>}
+          <AiError error={err} className="px-1" />
 
           {plan ? (
             <PlanView plan={plan} onToggleDone={toggleDone} onRegenerate={generate} regenerating={generating} />

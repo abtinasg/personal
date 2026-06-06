@@ -8,10 +8,22 @@ create extension if not exists "pgcrypto";
 -- ---------- کاربران ----------
 create table if not exists public.users (
   id           uuid primary key default gen_random_uuid(),
-  username     text unique not null,
+  username     text unique,
+  phone        text unique,
   display_name text,
   created_at   timestamptz not null default now()
 );
+
+-- ---------- کدهای یک‌بارمصرفِ ورود (OTP) ----------
+create table if not exists public.phone_otps (
+  phone        text primary key,
+  code_hash    text not null,
+  expires_at   timestamptz not null,
+  attempts     int  not null default 0,
+  last_sent_at timestamptz not null default now(),
+  created_at   timestamptz not null default now()
+);
+alter table public.phone_otps enable row level security;
 
 -- ---------- پسکی‌ها (WebAuthn credentials) ----------
 create table if not exists public.credentials (
@@ -272,3 +284,75 @@ create table if not exists public.purchase_goals (
 create index if not exists purchase_goals_user_idx on public.purchase_goals(user_id, status);
 
 alter table public.purchase_goals enable row level security;
+
+-- ============================================================
+--  کیفِ پولِ اعتباری + پرداختِ زرین‌پال + ریت‌لیمیت  (همتای supabase/migrations/008)
+-- ============================================================
+
+create table if not exists public.wallets (
+  user_id    uuid primary key references public.users(id) on delete cascade,
+  credits    integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.credit_ledger (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references public.users(id) on delete cascade,
+  delta         integer not null,                 -- + شارژ، − مصرف
+  reason        text not null,                    -- purchase | coach_chat | meal_estimate | ...
+  balance_after integer not null,
+  created_at    timestamptz not null default now()
+);
+create index if not exists credit_ledger_user_idx on public.credit_ledger(user_id, created_at desc);
+
+create table if not exists public.payments (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.users(id) on delete cascade,
+  authority  text unique,
+  amount     integer not null,                     -- مبلغ به تومان
+  credits    integer not null,
+  status     text not null default 'pending',      -- pending | paid | failed | canceled
+  ref_id     text,
+  created_at timestamptz not null default now(),
+  paid_at    timestamptz
+);
+create index if not exists payments_user_idx on public.payments(user_id, created_at desc);
+
+create table if not exists public.ai_usage (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.users(id) on delete cascade,
+  endpoint   text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists ai_usage_user_time_idx on public.ai_usage(user_id, created_at desc);
+
+alter table public.wallets       enable row level security;
+alter table public.credit_ledger enable row level security;
+alter table public.payments      enable row level security;
+alter table public.ai_usage      enable row level security;
+
+create or replace function public.add_credits(p_user uuid, p_amount int, p_reason text)
+returns int language plpgsql as $$
+declare new_bal int;
+begin
+  insert into public.wallets(user_id, credits) values (p_user, p_amount)
+    on conflict (user_id) do update set credits = public.wallets.credits + p_amount,
+                                        updated_at = now()
+    returning credits into new_bal;
+  insert into public.credit_ledger(user_id, delta, reason, balance_after)
+    values (p_user, p_amount, p_reason, new_bal);
+  return new_bal;
+end $$;
+
+create or replace function public.spend_credit(p_user uuid, p_cost int, p_reason text)
+returns int language plpgsql as $$
+declare new_bal int;
+begin
+  update public.wallets set credits = credits - p_cost, updated_at = now()
+    where user_id = p_user and credits >= p_cost
+    returning credits into new_bal;
+  if new_bal is null then return -1; end if;
+  insert into public.credit_ledger(user_id, delta, reason, balance_after)
+    values (p_user, -p_cost, p_reason, new_bal);
+  return new_bal;
+end $$;

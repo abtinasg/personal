@@ -16,12 +16,12 @@ const markazi = Markazi_Text({
   display: "swap",
 });
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME || "یک‌درصد";
+const appName = process.env.NEXT_PUBLIC_APP_NAME || "امروز";
 
 export const metadata: Metadata = {
-  title: { default: `${appName} — هر روز یک‌درصد بهتر`, template: `%s · ${appName}` },
+  title: { default: `${appName} — همین امروز`, template: `%s · ${appName}` },
   description:
-    "یک‌درصد: هویت‌ات را بساز و هر روز یک‌درصد بهتر شو. ماموریت‌ها، عادت‌های اتمی، کالری با هوش مصنوعی، بودجه، سلامتی و یک مربیِ همیشه‌همراه — ورود بی‌رمز با پسکی.",
+    "امروز: عمرت جمعِ همین «امروز»هاست. عادت‌های اتمی، کالری با هوش مصنوعی، بودجه، سلامتی و یک مربیِ همیشه‌همراه — همین امروز شروع کن، با ورودِ بی‌رمز با پسکی.",
   appleWebApp: { capable: true, statusBarStyle: "default", title: appName },
   icons: {
     icon: [

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiGet, apiSend } from "@/lib/client";
-import { fa, todayISO, daysAgoISO, jDate, jDateShort } from "@/lib/format";
+import { apiGet, apiSend, ApiError } from "@/lib/client";
+import { fa, parseNum, todayISO, daysAgoISO, jDate, jDateShort } from "@/lib/format";
 import type { Meal, Profile } from "@/lib/types";
 import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, Segmented, SectionTitle, IconChip } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
+import { AiError } from "@/components/AiError";
 
 const MEAL_LABELS: Record<string, string> = {
   breakfast: "صبحانه",
@@ -28,7 +29,7 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
   const [planOpen, setPlanOpen] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
-  const [reportErr, setReportErr] = useState("");
+  const [reportErr, setReportErr] = useState<unknown>(null);
   const today = todayISO();
   const [date, setDate] = useState(today);
   const isToday = date === today;
@@ -66,13 +67,13 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
   );
 
   async function genReport() {
-    setReportErr("");
+    setReportErr(null);
     setReportBusy(true);
     try {
       const { report } = await apiGet<{ report: string }>(`/api/meals/report?date=${date}`);
       setReport(report);
     } catch (e) {
-      setReportErr(e instanceof Error ? e.message : "خطا در تهیه گزارش.");
+      setReportErr(e instanceof ApiError ? e : new Error("خطا در تهیه گزارش."));
     } finally {
       setReportBusy(false);
     }
@@ -152,7 +153,7 @@ export default function CaloriesView({ profile, onProfileChange }: { profile: Pr
               {report ? "به‌روزرسانی" : "تهیه گزارش"}
             </Button>
           </div>
-          {reportErr && <p className="text-ios-red text-[13px] px-1">{reportErr}</p>}
+          <AiError error={reportErr} className="px-1" />
           {report ? (
             <p className="text-[15px] leading-7 whitespace-pre-wrap">{report}</p>
           ) : (
@@ -271,12 +272,12 @@ function NutritionPlanSheet({
     setSavingForm(true); setErr("");
     try {
       await apiSend("/api/profile", "PUT", {
-        height_cm: Number(height),
+        height_cm: parseNum(height),
         sex,
-        birth_year: Number(birthYear),
+        birth_year: parseNum(birthYear),
         activity_level: activity,
       });
-      if (weight) await apiSend("/api/health", "POST", { kind: "weight", value: Number(weight) });
+      if (weight) await apiSend("/api/health", "POST", { kind: "weight", value: parseNum(weight) });
       onProfileChange?.();
       await fetchPlan();
     } catch (e) {
@@ -457,8 +458,8 @@ function AddMealSheet({ open, onClose, date, onAdded }: { open: boolean; onClose
     setBusy(true);
     try {
       await apiSend("/api/meals", "POST", {
-        name, calories: Number(cal), meal_type: type,
-        protein: Number(p) || 0, carbs: Number(c) || 0, fat: Number(f) || 0, date,
+        name, calories: parseNum(cal), meal_type: type,
+        protein: parseNum(p) || 0, carbs: parseNum(c) || 0, fat: parseNum(f) || 0, date,
       });
       reset();
       onAdded();

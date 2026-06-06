@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data: users, error } = await a.db
     .from("users")
-    .select("id, username, display_name, created_at")
+    .select("id, username, phone, display_name, created_at")
     .order("created_at", { ascending: false });
   if (error) return bad(error.message, 500);
 

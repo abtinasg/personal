@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, faShort, money, todayISO, monthKey, monthStart, monthLabel } from "@/lib/format";
+import { fa, faShort, money, parseNum, todayISO, monthKey, monthStart, monthLabel } from "@/lib/format";
 import type { Profile, Transaction, PurchaseGoal, MarketRates, GoalDenom } from "@/lib/types";
-import { Card, Sheet, Field, Button, Spinner, EmptyState, Segmented, SectionTitle } from "@/components/ui";
+import { Card, Sheet, Field, MoneyInput, Button, Spinner, EmptyState, Segmented, SectionTitle } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
 import { AppIcon } from "@/components/AppIcon";
 import InvestChat from "@/components/InvestChat";
@@ -352,7 +352,7 @@ function AddTxSheet({ open, onClose, onAdded }: { open: boolean; onClose: () => 
     if (!amount) return;
     setBusy(true);
     try {
-      await apiSend("/api/transactions", "POST", { kind, amount: Number(amount), category, note, date: todayISO() });
+      await apiSend("/api/transactions", "POST", { kind, amount: parseNum(amount), category, note, date: todayISO() });
       setAmount(""); setNote("");
       onAdded();
       onClose();
@@ -370,7 +370,7 @@ function AddTxSheet({ open, onClose, onAdded }: { open: boolean; onClose: () => 
           options={[{ value: "expense", label: "هزینه" }, { value: "income", label: "درآمد" }]}
         />
         <Field label="مبلغ">
-          <input className="ios-input text-center text-[22px] font-bold" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="۰" />
+          <MoneyInput value={amount} onChange={setAmount} />
         </Field>
         <Field label="دسته">
           <div className="flex flex-wrap gap-2">
@@ -411,13 +411,13 @@ function AddGoalSheet({
 
   const meta = DENOM[denom];
   const rate = meta.rateKey && rates ? (rates[meta.rateKey] as number | null) : null;
-  const tomanPreview = denom === "toman" ? Number(target) : rate && target ? Number(target) * rate : null;
+  const tomanPreview = denom === "toman" ? parseNum(target) : rate && target ? parseNum(target) * rate : null;
 
   async function submit() {
     if (!title.trim() || !target) return;
     setBusy(true);
     try {
-      await apiSend("/api/goals", "POST", { title, emoji, denom, target_native: Number(target) });
+      await apiSend("/api/goals", "POST", { title, emoji, denom, target_native: parseNum(target) });
       setTitle(""); setTarget(""); setEmoji("target"); setDenom("usd");
       onAdded();
       onClose();
@@ -494,7 +494,7 @@ function SaveSheet({
     if (!goal || !amount) return;
     setBusy(true);
     try {
-      const next = Number(goal.saved_toman) + Number(amount);
+      const next = Number(goal.saved_toman) + parseNum(amount);
       await apiSend("/api/goals", "PUT", { id: goal.id, saved_toman: next });
       onSaved();
       onClose();
@@ -512,7 +512,7 @@ function SaveSheet({
           </p>
         )}
         <Field label={`مبلغی که این بار کنار می‌گذاری (${currency})`}>
-          <input className="ios-input text-center text-[22px] font-bold" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="۰" />
+          <MoneyInput value={amount} onChange={setAmount} />
         </Field>
         <Button onClick={submit} disabled={busy || !amount} className="w-full flex items-center justify-center gap-2 mt-1">
           {busy && <Spinner />} افزودن

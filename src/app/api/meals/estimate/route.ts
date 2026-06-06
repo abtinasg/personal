@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
 
 export const runtime = "nodejs";
@@ -17,6 +18,8 @@ const TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 export async function POST(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "meal_estimate");
+  if ("error" in guard) return guard.error;
 
   const b = await req.json().catch(() => ({}));
   const desc = String(b.description || b.name || "").trim();

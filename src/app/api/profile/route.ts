@@ -29,6 +29,7 @@ export async function PUT(req: Request) {
   if (b.sex !== undefined) patch.sex = b.sex === "male" || b.sex === "female" ? b.sex : null;
   if (b.birth_year !== undefined) patch.birth_year = b.birth_year != null ? Math.round(Number(b.birth_year)) : null;
   if (b.activity_level !== undefined) patch.activity_level = b.activity_level ? String(b.activity_level) : null;
+  if (b.onboarded !== undefined) patch.onboarded = !!b.onboarded;
 
   // ترجیحاتِ ورزشی
   if (b.fitness_goal !== undefined) patch.fitness_goal = b.fitness_goal ? String(b.fitness_goal) : null;

@@ -1,4 +1,5 @@
 import { authed, ok, bad } from "@/lib/api";
+import { guardAI } from "@/lib/aiGuard";
 import { aiText } from "@/lib/openrouter";
 import { userSnapshot } from "@/lib/coach";
 
@@ -7,6 +8,8 @@ export const runtime = "nodejs";
 export async function GET() {
   const a = await authed();
   if ("error" in a) return a.error;
+  const guard = await guardAI(a.db, a.uid, "coach_briefing");
+  if ("error" in guard) return guard.error;
 
   const snap = await userSnapshot(a.db, a.uid);
   if (!snap.hasData) {

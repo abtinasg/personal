@@ -3,6 +3,7 @@
 import { CSSProperties, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AppIcon } from "@/components/AppIcon";
+import { parseNum, groupFa, tomanWords } from "@/lib/format";
 
 /**
  * المان‌های overlay (مدال‌ها) را به‌جای جایِ فعلی‌شان مستقیم به <body> می‌بَرد.
@@ -362,6 +363,37 @@ export function Field({
       <span className="text-[13px] secondary mb-1.5 block px-1">{label}</span>
       {children}
     </label>
+  );
+}
+
+/**
+ * ورودیِ پول: ارقامِ فارسی/انگلیسی را می‌پذیرد، زنده با جداکننده‌ی هزارگان قالب‌بندی می‌کند
+ * و زیرِ آن مبلغ را خوانا («۲۰۰ هزار تومان») نشان می‌دهد. مقدارِ state همان رشته‌ی گروه‌بندی‌شده است؛
+ * موقعِ ارسال با parseNum به عدد تبدیل کنید.
+ */
+export function MoneyInput({
+  value,
+  onChange,
+  placeholder = "۰",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const n = parseNum(value);
+  return (
+    <div>
+      <input
+        className="ios-input text-center text-[22px] font-bold"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(groupFa(e.target.value))}
+        placeholder={placeholder}
+      />
+      {n > 0 && (
+        <p className="secondary text-[13px] text-center mt-1.5">{tomanWords(n)}</p>
+      )}
+    </div>
   );
 }
 

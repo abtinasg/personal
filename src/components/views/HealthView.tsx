@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, todayISO, daysAgoISO, jWeekday, jDateShort } from "@/lib/format";
+import { fa, parseNum, todayISO, daysAgoISO, jWeekday, jDateShort } from "@/lib/format";
 import type { HealthMetric, Profile } from "@/lib/types";
 import { Card, Sheet, Field, Button, Spinner, SectionTitle, StatTile, IconChip, DarkActivityChart, BarChart } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
@@ -178,7 +178,7 @@ function MetricSheet({ kind, onClose, date, onAdded }: { kind: null | "weight" |
     if (!value || !kind) return;
     setBusy(true);
     try {
-      await apiSend("/api/health", "POST", { kind, value: Number(value), date });
+      await apiSend("/api/health", "POST", { kind, value: parseNum(value), date });
       setValue(""); onAdded(); onClose();
     } finally { setBusy(false); }
   }

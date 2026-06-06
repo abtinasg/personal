@@ -15,6 +15,7 @@ export type Profile = {
   sex: "male" | "female" | null;
   birth_year: number | null;
   activity_level: ActivityLevel | null;
+  onboarded: boolean;
   // ترجیحاتِ ورزشی
   fitness_goal: FitnessGoal | null;
   fitness_level: FitnessLevel | null;
