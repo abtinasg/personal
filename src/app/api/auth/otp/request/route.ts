@@ -38,6 +38,12 @@ export async function POST(req: Request) {
     }
   }
 
+  // اکانت تست — بدون ارسال پیامک
+  const testPhone = process.env.TEST_PHONE;
+  if (testPhone && normalized === testPhone) {
+    return NextResponse.json({ ok: true, ttl: CODE_TTL_MS / 1000 });
+  }
+
   const code = generateOtp(5);
   const now = new Date();
 

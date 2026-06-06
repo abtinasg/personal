@@ -19,6 +19,28 @@ export async function POST(req: Request) {
     );
   }
 
+  // اکانت تست — بدون بررسی دیتابیس
+  const testPhone = process.env.TEST_PHONE;
+  const testCode = process.env.TEST_OTP_CODE;
+  if (testPhone && testCode && normalized === testPhone && inputCode === testCode) {
+    const db2 = getServiceClient();
+    let { data: user } = await db2
+      .from("users")
+      .select("id, username, phone")
+      .eq("phone", normalized)
+      .maybeSingle();
+    if (!user) {
+      const { data: created } = await db2
+        .from("users")
+        .insert({ phone: normalized, username: normalized })
+        .select("id, username, phone")
+        .single();
+      user = created;
+    }
+    if (user) await createSession({ uid: user.id, username: user.username || normalized });
+    return NextResponse.json({ ok: true });
+  }
+
   const db = getServiceClient();
 
   const { data: otp } = await db
