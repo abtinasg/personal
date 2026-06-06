@@ -6,7 +6,6 @@ import crypto from "crypto";
  * در صورت نامعتبر بودن null برمی‌گرداند.
  */
 export function normalizePhone(input: string): string | null {
-  // ارقام فارسی/عربی را به لاتین تبدیل کن، بعد فقط رقم‌ها را نگه دار.
   const latin = String(input || "")
     .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
     .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
@@ -16,9 +15,13 @@ export function normalizePhone(input: string): string | null {
   else if (digits.startsWith("98")) digits = digits.slice(2);
   else if (digits.startsWith("0")) digits = digits.slice(1);
 
-  // الان باید 9xxxxxxxxx باشد (۱۰ رقم، شروع با 9)
   if (!/^9\d{9}$/.test(digits)) return null;
   return "0" + digits;
+}
+
+/** تبدیل فرمت ایرانی (09xx) به فرمت بین‌المللی (989xx) برای SMS.ir */
+function toInternational(phone: string): string {
+  return "98" + phone.slice(1);
 }
 
 /** کدِ عددیِ تصادفیِ n رقمی (پیش‌فرض ۵ رقم). */
@@ -34,35 +37,42 @@ export function hashOtp(code: string): string {
 }
 
 /**
- * ارسال کد یک‌بارمصرف با سرویس send کاوه‌نگار (بدون نیاز به الگو).
- * نیازمند فقط KAVENEGAR_API_KEY در محیط است.
+ * ارسال کد یک‌بارمصرف با SMS.ir (likeToLike — بدون نیاز به template).
+ * نیازمند SMSIR_API_KEY و SMSIR_LINE در محیط است.
  */
 export async function sendOtpSms(phone: string, code: string): Promise<void> {
-  const key = process.env.KAVENEGAR_API_KEY;
-  if (!key) {
+  const key = process.env.SMSIR_API_KEY;
+  const line = process.env.SMSIR_LINE;
+
+  if (!key || !line) {
     throw new Error(
-      "سرویس پیامک تنظیم نشده است. KAVENEGAR_API_KEY را در .env قرار بده."
+      "سرویس پیامک تنظیم نشده است. SMSIR_API_KEY و SMSIR_LINE را در .env قرار بده."
     );
   }
 
-  const message = `کد تأیید شما: ${code}`;
-  const url = new URL(`https://api.kavenegar.com/v1/${key}/sms/send.json`);
-  url.searchParams.set("receptor", phone);
-  url.searchParams.set("message", message);
-
   let res: Response;
   try {
-    res = await fetch(url, { method: "GET" });
+    res = await fetch("https://api.sms.ir/v1/send/likeToLike", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-API-Key": key,
+      },
+      body: JSON.stringify({
+        lineNumber: line,
+        sendDateTime: null,
+        mobiles: [toInternational(phone)],
+        messageTexts: [`کد تأیید شما: ${code}`],
+      }),
+    });
   } catch {
     throw new Error("ارتباط با سرویس پیامک برقرار نشد.");
   }
 
   const body = await res.json().catch(() => null as any);
-  const result = body?.result;
-  // کاوه‌نگار اگر موفق بود، result.status=1 یا entries[0].status=1
-  const isSuccess = result?.status === 1 || body?.result?.[0]?.status === 1;
-  if (!res.ok || !isSuccess) {
-    const msg = body?.return?.message || `کد وضعیت ${res.status}`;
+  if (!res.ok || body?.status !== 1) {
+    const msg = body?.message || `کد وضعیت ${res.status}`;
     throw new Error(`ارسال پیامک ناموفق بود: ${msg}`);
   }
 }
