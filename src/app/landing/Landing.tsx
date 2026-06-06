@@ -706,9 +706,26 @@ function Footer() {
             <p className="secondary text-[12px] mt-1">{SLOGAN}</p>
           </div>
         </div>
-        <Link href="/login" className="text-ios-blue text-[15px] font-semibold active:opacity-60">
-          ورود / ثبت‌نام
-        </Link>
+        <div className="flex items-center gap-4">
+          <a
+            referrerPolicy="origin"
+            target="_blank"
+            href="https://trustseal.enamad.ir/?id=739117&Code=iHDIuHOAA4wcM5Fvi1MUBcyxBQ3BdvuU"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              referrerPolicy="origin"
+              src="https://trustseal.enamad.ir/logo.aspx?id=739117&Code=iHDIuHOAA4wcM5Fvi1MUBcyxBQ3BdvuU"
+              alt="اینماد"
+              style={{ cursor: "pointer", height: 48 }}
+              // @ts-expect-error enamad custom attribute
+              code="iHDIuHOAA4wcM5Fvi1MUBcyxBQ3BdvuU"
+            />
+          </a>
+          <Link href="/login" className="text-ios-blue text-[15px] font-semibold active:opacity-60">
+            ورود / ثبت‌نام
+          </Link>
+        </div>
       </div>
       <p className="secondary text-center text-[12px] pb-8">
         ساخته‌شده برای کسانی که می‌خواهند هر روز کمی بهتر شوند.
