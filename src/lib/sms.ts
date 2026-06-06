@@ -37,16 +37,77 @@ export function hashOtp(code: string): string {
 }
 
 /**
- * ارسال کد یک‌بارمصرف با SMS.ir (likeToLike — بدون نیاز به template).
- * نیازمند SMSIR_API_KEY و SMSIR_LINE در محیط است.
+ * ارسال کد یک‌بارمصرف با SMS.ir.
+ *
+ * دو حالت دارد:
+ *  ۱) اگر SMSIR_TEMPLATE_ID ست شده باشد → سرویسِ اعتبارسنجی (verify).
+ *     این روش روی خطِ سرویسِ تأییدشده می‌رود و توسط اپراتورها فیلتر نمی‌شود
+ *     (روشِ توصیه‌شده برای OTP).
+ *  ۲) در غیر این صورت → likeToLike روی SMSIR_LINE (خطِ معمولی/تبلیغاتی؛
+ *     ممکن است به‌دستِ همهٔ کاربران نرسد).
  */
 export async function sendOtpSms(phone: string, code: string): Promise<void> {
   const key = process.env.SMSIR_API_KEY;
-  const line = process.env.SMSIR_LINE;
-
-  if (!key || !line) {
+  if (!key) {
     throw new Error(
-      "سرویس پیامک تنظیم نشده است. SMSIR_API_KEY و SMSIR_LINE را در .env قرار بده."
+      "سرویس پیامک تنظیم نشده است. SMSIR_API_KEY را در .env قرار بده."
+    );
+  }
+
+  const templateId = process.env.SMSIR_TEMPLATE_ID;
+  if (templateId) {
+    await sendViaVerify(key, templateId, phone, code);
+  } else {
+    await sendViaLikeToLike(key, phone, code);
+  }
+}
+
+/** سرویسِ اعتبارسنجیِ SMS.ir — قابل‌اعتماد برای OTP (خطِ سرویس). */
+async function sendViaVerify(
+  key: string,
+  templateId: string,
+  phone: string,
+  code: string
+): Promise<void> {
+  // نامِ پارامتر باید با تعریفِ قالب در پنل بخواند؛ پیش‌فرض Code.
+  const paramName = process.env.SMSIR_TEMPLATE_PARAM || "Code";
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.sms.ir/v1/send/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-API-Key": key,
+      },
+      body: JSON.stringify({
+        mobile: phone, // فرمتِ 09xxxxxxxxx
+        templateId: Number(templateId),
+        parameters: [{ name: paramName, value: code }],
+      }),
+    });
+  } catch {
+    throw new Error("ارتباط با سرویس پیامک برقرار نشد.");
+  }
+
+  const body = await res.json().catch(() => null as any);
+  if (!res.ok || body?.status !== 1) {
+    const msg = body?.message || `کد وضعیت ${res.status}`;
+    throw new Error(`ارسال پیامک ناموفق بود: ${msg}`);
+  }
+}
+
+/** ارسالِ عادی روی خطِ معمولی (بدون قالب). */
+async function sendViaLikeToLike(
+  key: string,
+  phone: string,
+  code: string
+): Promise<void> {
+  const line = process.env.SMSIR_LINE;
+  if (!line) {
+    throw new Error(
+      "سرویس پیامک تنظیم نشده است. SMSIR_LINE یا SMSIR_TEMPLATE_ID را در .env قرار بده."
     );
   }
 
