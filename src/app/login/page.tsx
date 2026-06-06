@@ -6,7 +6,7 @@ import { apiSend } from "@/lib/client";
 import { Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 import { Mascot } from "@/components/Mascot";
-import { Phone, ShieldCheck } from "lucide-react";
+import { Phone, ShieldCheck, KeyRound, User } from "lucide-react";
 
 const APP = process.env.NEXT_PUBLIC_APP_NAME || "امروز";
 const TAGLINE = "همین امروز";
@@ -14,7 +14,7 @@ const ONBOARD_KEY = "zendegi:onboarded";
 const CODE_LEN = 5;
 const RESEND_SECONDS = 60;
 
-type Screen = "splash" | "onboarding" | "phone" | "code";
+type Screen = "splash" | "onboarding" | "phone" | "code" | "credentials";
 
 // هر اسلاید یک ته‌رنگِ پاستلی + اکسنت از پالتِ جدید (آبی/هلویی/سبز/یاسی) دارد.
 const SLIDES: { icon: string; title: string; desc: string; tint: string; accent: string; mascot?: boolean }[] = [
@@ -54,6 +54,8 @@ export default function LoginPage() {
   const [screen, setScreen] = useState<Screen>("splash");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [resendIn, setResendIn] = useState(0);
@@ -113,6 +115,21 @@ export default function LoginPage() {
     }
   }
 
+  async function loginWithCredentials() {
+    setErr("");
+    if (!username.trim() || !password.trim()) return setErr("نام کاربری و رمز عبور را وارد کن.");
+    setBusy(true);
+    try {
+      await apiSend("/api/auth/credentials", "POST", { username, password });
+      router.replace("/");
+      router.refresh();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function verifyCode(submitCode?: string) {
     const c = (submitCode ?? code).replace(/\D/g, "");
     setErr("");
@@ -136,6 +153,79 @@ export default function LoginPage() {
 
   if (screen === "onboarding") {
     return <Onboarding onStart={finishOnboarding} onLogin={finishOnboarding} />;
+  }
+
+  if (screen === "credentials") {
+    return (
+      <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
+        <div
+          className="flex-none flex flex-col"
+          style={{ height: "38dvh", background: "linear-gradient(135deg, var(--t-lav) 0%, var(--t-blue) 100%)" }}
+        >
+          <div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
+            <button
+              onClick={() => { setErr(""); setScreen("phone"); }}
+              className="h-9 w-9 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center text-[var(--ink)] shadow-soft active:scale-90 transition"
+              aria-label="برگشت"
+            >
+              <ChevronRight />
+            </button>
+            <span className="text-[var(--secondary)] text-[14px] font-medium">ورود مدیر</span>
+          </div>
+          <div className="flex-1 flex items-end justify-center">
+            <Mascot size={132} pose="wave" float />
+          </div>
+        </div>
+        <div
+          className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
+          style={{ minHeight: "62dvh" }}
+        >
+          <div className="mb-6">
+            <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">ورود با رمز عبور</h1>
+            <p className="text-[15px] text-[var(--secondary)] mt-1">نام کاربری و رمز عبور ادمین را وارد کن.</p>
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <div className="relative">
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
+                <User size={18} />
+              </span>
+              <input
+                className="ios-input w-full pr-10 text-right"
+                placeholder="نام کاربری"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && loginWithCredentials()}
+                disabled={busy}
+              />
+            </div>
+            <div className="relative">
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
+                <KeyRound size={18} />
+              </span>
+              <input
+                className="ios-input w-full pr-10 text-right"
+                placeholder="رمز عبور"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && loginWithCredentials()}
+                disabled={busy}
+              />
+            </div>
+          </div>
+
+          {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
+
+          <PillButton onClick={loginWithCredentials} disabled={busy} busy={busy}>
+            <KeyRound size={18} />
+            ورود
+          </PillButton>
+        </div>
+      </div>
+    );
   }
 
   const isCode = screen === "code";
@@ -227,6 +317,13 @@ export default function LoginPage() {
               <Phone size={18} />
               دریافت کد
             </PillButton>
+
+            <button
+              className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60"
+              onClick={() => { setErr(""); setScreen("credentials"); }}
+            >
+              ورود با رمز عبور
+            </button>
           </>
         ) : (
           /* ----- مرحلهٔ کد ----- */
