@@ -5,7 +5,7 @@ import { createSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-const MAX_ATTEMPTS = 5; // حداکثر تلاشِ نادرستِ تأیید برای هر کد
+const MAX_ATTEMPTS = 5;
 
 export async function POST(req: Request) {
   const { phone, code } = await req.json().catch(() => ({}));
@@ -80,10 +80,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "کد نادرست است." }, { status: 401 });
   }
 
-  // کد درست — مصرف شد، حذفش کن.
   await db.from("phone_otps").delete().eq("phone", normalized);
 
-  // کاربر را پیدا کن یا بساز.
   let { data: user } = await db
     .from("users")
     .select("id, username, phone")
