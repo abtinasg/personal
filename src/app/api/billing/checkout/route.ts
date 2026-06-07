@@ -1,5 +1,5 @@
 import { authed, bad, ok } from "@/lib/api";
-import { findPack } from "@/lib/billing";
+import { findPack, parsePackId } from "@/lib/billing";
 import { requestPayment } from "@/lib/zibal";
 
 export const runtime = "nodejs";
@@ -20,10 +20,18 @@ export async function POST(req: Request) {
   const pack = findPack(String(body?.packId ?? ""));
   if (!pack) return bad("بسته‌ی نامعتبر.");
 
-  // ردیفِ پرداختِ در حالِ انتظار
+  // ردیفِ پرداختِ در حالِ انتظار (پلن/دوره را هم نگه می‌داریم تا callback فعالش کند)
+  const parsed = parsePackId(pack.id);
   const { data: payment, error: insErr } = await a.db
     .from("payments")
-    .insert({ user_id: a.uid, amount: pack.toman, credits: pack.credits, status: "pending" })
+    .insert({
+      user_id: a.uid,
+      amount: pack.toman,
+      credits: pack.credits,
+      status: "pending",
+      plan: parsed?.plan ?? null,
+      cycle: parsed?.cycle ?? null,
+    })
     .select("id")
     .single();
   if (insErr || !payment) return bad("ثبتِ پرداخت ناموفق بود.", 500);

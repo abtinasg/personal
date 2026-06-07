@@ -4,18 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa, money, jDateShort } from "@/lib/format";
+import { PLANS, annualPrice, type BillingCycle, type Plan } from "@/lib/billing";
 import { Card, Button, Spinner, SectionTitle } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 
-type Pack = { id: string; toman: number; credits: number; label: string };
 type LedgerRow = { delta: number; reason: string; balance_after: number; created_at: string };
 type WalletData = {
   credits: number;
   freeUsedToday: number;
   freeDaily: number;
-  packs: Pack[];
+  plan: { plan: string; cycle: string; expiresAt: string } | null;
   ledger: LedgerRow[];
 };
+
+const planName = (id?: string | null) => PLANS.find((p) => p.id === id)?.name ?? "";
 
 // برچسبِ فارسیِ دلیلِ هر تراکنش در دفترِ کل
 const REASON_LABEL: Record<string, string> = {
@@ -41,6 +43,7 @@ export default function WalletView() {
   const [data, setData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [banner, setBanner] = useState<{ kind: "success" | "failed"; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,17 +66,23 @@ export default function WalletView() {
   useEffect(() => {
     const status = params.get("status");
     if (status === "success") {
+      const p = params.get("plan");
       const c = params.get("credits");
-      setBanner({ kind: "success", text: `پرداخت موفق بود${c ? ` — ${fa(Number(c))} اعتبار اضافه شد` : ""}. 🎉` });
+      const text = p
+        ? `پلنِ ${planName(p) || "اشتراک"} فعال شد. خوش اومدی! 🎉`
+        : `پرداخت موفق بود${c ? ` — ${fa(Number(c))} اعتبار اضافه شد` : ""}. 🎉`;
+      setBanner({ kind: "success", text });
     } else if (status === "failed") {
       setBanner({ kind: "failed", text: "پرداخت کامل نشد. اگر مبلغی کسر شده تا ۷۲ ساعت برمی‌گردد." });
     }
   }, [params]);
 
-  async function buy(pack: Pack) {
-    setBuying(pack.id);
+  // خریدِ پلن: پلن + دوره را به شناسه‌ی بسته‌ی پرداخت نگاشت می‌کند.
+  async function buy(plan: Plan) {
+    const packId = `${plan.id}-${cycle}`;
+    setBuying(packId);
     try {
-      const { url } = await apiSend<{ url: string }>("/api/billing/checkout", "POST", { packId: pack.id });
+      const { url } = await apiSend<{ url: string }>("/api/billing/checkout", "POST", { packId });
       window.location.href = url;
     } catch (e) {
       setBanner({ kind: "failed", text: e instanceof Error ? e.message : "اتصال به درگاه ناموفق بود." });
@@ -92,6 +101,7 @@ export default function WalletView() {
   }
 
   const freeLeft = Math.max(0, data.freeDaily - data.freeUsedToday);
+  const activePlanId = data.plan?.plan ?? "free";
 
   return (
     <div className="pb-8">
@@ -112,32 +122,117 @@ export default function WalletView() {
         </div>
       </Card>
 
-      {/* سهمیه‌ی رایگانِ امروز */}
-      <Card className="mt-3 p-4 flex items-center gap-3">
-        <AppIcon name="sparkles" size={22} className="text-ios-blue" />
-        <p className="text-[15px]">
-          امروز <b>{fa(freeLeft)}</b> از <b>{fa(data.freeDaily)}</b> فراخوانیِ رایگانِ هوش مصنوعی باقی مونده. بعدش از اعتبارت استفاده می‌شه.
-        </p>
-      </Card>
+      {/* وضعیتِ پلن یا سهمیه‌ی رایگانِ امروز */}
+      {data.plan ? (
+        <Card className="mt-3 p-4 flex items-center gap-3">
+          <AppIcon name="sprout" size={22} className="text-ios-green" />
+          <p className="text-[15px]">
+            پلنِ <b>{planName(data.plan.plan) || "اشتراک"}</b> فعاله — تا <b>{jDateShort(data.plan.expiresAt)}</b>. گفتگو با جوانه نامحدوده. 🌱
+          </p>
+        </Card>
+      ) : (
+        <Card className="mt-3 p-4 flex items-center gap-3">
+          <AppIcon name="sparkles" size={22} className="text-ios-blue" />
+          <p className="text-[15px]">
+            امروز <b>{fa(freeLeft)}</b> از <b>{fa(data.freeDaily)}</b> گفتگوی رایگان با جوانه باقی مونده. بعدش با پلاس ادامه بده.
+          </p>
+        </Card>
+      )}
 
-      <SectionTitle>شارژِ کیف پول</SectionTitle>
-      <div className="space-y-3">
-        {data.packs.map((p) => (
-          <Card key={p.id} className="p-4 flex items-center gap-4">
-            <div className="flex-1">
-              <p className="text-[17px] font-bold">{fa(p.credits)} اعتبار</p>
-              <p className="secondary text-[14px]">{p.label} — {money(p.toman)}</p>
-            </div>
-            <Button
-              onClick={() => buy(p)}
-              disabled={buying != null}
-              className="flex items-center gap-2 px-5"
-            >
-              {buying === p.id ? <Spinner /> : "خرید"}
-            </Button>
-          </Card>
-        ))}
+      {/* ----- پلن‌ها ----- */}
+      <div className="mt-7 mb-4 text-center">
+        <h2 className="text-[22px] font-extrabold tracking-tight">مربی‌ت رو کامل کن</h2>
+        <p className="secondary text-[14px] mt-1.5 px-3 leading-relaxed">
+          ثبتِ کالری، بودجه و عادت همیشه رایگانه. این پلن‌ها هوشِ جوانه رو باز می‌کنن.
+        </p>
       </div>
+
+      {/* کلیدِ ماهانه / سالانه */}
+      <div className="flex items-center justify-center mb-4">
+        <div className="inline-flex items-center gap-1 p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
+          {(["monthly", "annual"] as BillingCycle[]).map((c) => (
+            <button
+              key={c}
+              onClick={() => setCycle(c)}
+              className={`px-4 py-1.5 rounded-full text-[14px] font-bold transition flex items-center gap-1.5 ${
+                cycle === c ? "bg-[var(--card-solid)] shadow-soft text-[var(--label)]" : "secondary"
+              }`}
+            >
+              {c === "monthly" ? "ماهانه" : "سالانه"}
+              {c === "annual" && (
+                <span className="text-ios-green text-[11px] font-extrabold">۲ ماه هدیه</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {PLANS.map((plan) => {
+          const isFree = plan.priceMonthly === 0;
+          const isCurrent = plan.id === activePlanId;
+          const price = cycle === "annual" ? annualPrice(plan.priceMonthly) : plan.priceMonthly;
+          const packId = `${plan.id}-${cycle}`;
+          return (
+            <Card
+              key={plan.id}
+              className={`relative p-5 ${plan.highlight ? "ring-2 ring-ios-blue" : ""}`}
+            >
+              {isCurrent ? (
+                <span className="absolute -top-3 right-5 rounded-full bg-ios-green text-white text-[12px] font-extrabold px-3 py-1 shadow-soft">
+                  فعال
+                </span>
+              ) : plan.highlight ? (
+                <span className="absolute -top-3 right-5 rounded-full bg-ios-blue text-white text-[12px] font-extrabold px-3 py-1 shadow-soft">
+                  پیشنهاد ما
+                </span>
+              ) : null}
+
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-[19px] font-extrabold">{plan.name}</p>
+                {isFree ? (
+                  <p className="text-[17px] font-extrabold secondary">رایگان</p>
+                ) : (
+                  <p className="font-extrabold leading-none">
+                    <span className="text-[20px]">{money(price)}</span>
+                    <span className="secondary text-[13px] font-bold"> /{cycle === "annual" ? "سال" : "ماه"}</span>
+                  </p>
+                )}
+              </div>
+              <p className="secondary text-[14px] mt-1">{plan.tagline}</p>
+
+              <ul className="mt-4 space-y-2.5">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-[14.5px] leading-6">
+                    <span className="text-ios-green mt-0.5 shrink-0">
+                      <CheckIcon />
+                    </span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {isFree ? (
+                <div className="mt-4 text-center text-[14px] font-bold secondary py-3 rounded-full bg-black/[0.04] dark:bg-white/[0.06]">
+                  {isCurrent ? "پلنِ فعلیِ تو" : "پایه — همیشه در دسترس"}
+                </div>
+              ) : (
+                <Button
+                  onClick={() => buy(plan)}
+                  disabled={buying != null}
+                  className="w-full mt-4"
+                >
+                  {buying === packId ? <Spinner /> : isCurrent ? `تمدیدِ ${plan.name}` : `شروع ${plan.name}`}
+                </Button>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      <p className="secondary text-[12.5px] text-center mt-4 leading-relaxed px-5">
+        اول رایگان امتحان کن، بعد تصمیم بگیر. هر وقت خواستی لغو کن، بی‌دردسر.
+      </p>
 
       {data.ledger.length > 0 && (
         <>
@@ -158,5 +253,13 @@ export default function WalletView() {
         </>
       )}
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
   );
 }

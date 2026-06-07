@@ -11,6 +11,7 @@ import { Sheet, Field, MoneyInput, Button, Spinner, Chevron } from "@/components
 import { AppProvider } from "@/components/AppContext";
 import QuickCapture from "@/components/QuickCapture";
 import Onboarding from "@/components/Onboarding";
+import { enablePush, disablePush, isPushEnabled, isPushSupported } from "@/lib/pushClient";
 
 /** تب‌های اصلی (مسیرهای واقعیِ روتر). دکمه‌ی وسط «ثبتِ سریع» است و مسیر ندارد. */
 const NAV: { href: string; label: string; icon: string }[] = [
@@ -36,11 +37,13 @@ export default function AppChrome({
   username,
   displayName,
   isAdmin = false,
+  isGuest = false,
   children,
 }: {
   username: string;
   displayName: string;
   isAdmin?: boolean;
+  isGuest?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -117,6 +120,18 @@ export default function AppChrome({
             </button>
           </div>
         </header>
+
+        {/* بنرِ مهمان — دعوت به ذخیره‌ی دائمیِ حساب */}
+        {isGuest && (
+          <button
+            onClick={() => router.push("/login")}
+            className="flex w-full items-center justify-between gap-3 px-5 py-2.5 text-[13.5px] font-semibold active:opacity-80 transition"
+            style={{ background: "var(--t-sage)", color: "var(--label)" }}
+          >
+            <span>🌱 حسابت موقتیه — شماره‌ت رو بده تا چیزی گم نشه.</span>
+            <span className="shrink-0 rounded-full bg-[var(--ink)] text-white px-3 py-1 text-[12.5px]">ذخیره</span>
+          </button>
+        )}
 
         {/* محتوای صفحه — با تغییرِ مسیر، fade-up دوباره اجرا می‌شود */}
         <main key={pathname} className="px-5 animate-fade-up">
@@ -259,9 +274,11 @@ function SettingsSheet({
         onClick={onClose}
         className="flex w-full items-center justify-between rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 text-[16px] font-semibold active:opacity-60 mb-4"
       >
-        <span>کیف پول و اعتبار</span>
+        <span>پلن و کیف پول</span>
         <Chevron dir="forward" size={20} className="secondary" />
       </a>
+
+      <NotifyRow />
 
       <div className="space-y-3">
         <Field label="هدف کالری روزانه">
@@ -298,5 +315,60 @@ function SettingsSheet({
         خروج از حساب
       </button>
     </Sheet>
+  );
+}
+
+/** روشن/خاموش‌کردنِ یادآوری‌های جوانه (Web Push). */
+function NotifyRow() {
+  const [supported, setSupported] = useState(true);
+  const [on, setOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    setSupported(isPushSupported());
+    isPushEnabled().then(setOn).catch(() => {});
+  }, []);
+
+  if (!supported) return null;
+
+  async function toggle() {
+    setBusy(true);
+    setMsg("");
+    try {
+      if (on) {
+        await disablePush();
+        setOn(false);
+      } else {
+        const r = await enablePush();
+        if (r.ok) setOn(true);
+        else setMsg(r.reason || "روشن نشد.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 mb-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[16px] font-semibold">یادآوری‌های جوانه 🌱</p>
+          <p className="secondary text-[13px] mt-0.5 leading-snug">
+            صبح‌ها بهت یادآوری می‌کنه قدم‌های امروزت رو برداری.
+          </p>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={busy}
+          className={`shrink-0 h-9 px-4 rounded-full text-[14px] font-bold active:scale-95 transition disabled:opacity-50 ${
+            on ? "bg-[var(--label)]/10 text-[var(--secondary)]" : "bg-[var(--ink)] text-white"
+          }`}
+        >
+          {busy ? "…" : on ? "روشن ✓" : "روشن کن"}
+        </button>
+      </div>
+      {msg && <p className="text-ios-red text-[12.5px] mt-2">{msg}</p>}
+    </div>
   );
 }

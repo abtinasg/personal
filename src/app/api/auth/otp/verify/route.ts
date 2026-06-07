@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { normalizePhone, hashOtp } from "@/lib/sms";
-import { createSession } from "@/lib/auth";
+import { createSession, getSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -89,18 +89,47 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (!user) {
-    const { data: created, error: insErr } = await db
-      .from("users")
-      .insert({ phone: normalized, username: normalized })
-      .select("id, username, phone, password_hash")
-      .single();
-    if (insErr || !created) {
-      return NextResponse.json(
-        { error: "خطا در ساخت حساب. دوباره تلاش کن." },
-        { status: 500 }
-      );
+    // اگر کاربرِ مهمان لاگین است و این شماره آزاد است، همین ردیف را ارتقا بده (claim)
+    // تا همه‌ی داده‌هایی که به‌عنوان مهمان ساخته بود حفظ و «منتقل» شوند.
+    let guestId: string | null = null;
+    const current = await getSession();
+    if (current) {
+      const { data: cu } = await db
+        .from("users")
+        .select("id, is_guest")
+        .eq("id", current.uid)
+        .maybeSingle();
+      if (cu?.is_guest) guestId = cu.id as string;
     }
-    user = created;
+
+    if (guestId) {
+      const { data: claimed, error: upErr } = await db
+        .from("users")
+        .update({ phone: normalized, username: normalized, is_guest: false })
+        .eq("id", guestId)
+        .select("id, username, phone, password_hash")
+        .single();
+      if (upErr || !claimed) {
+        return NextResponse.json(
+          { error: "خطا در ذخیره‌ی حساب. دوباره تلاش کن." },
+          { status: 500 }
+        );
+      }
+      user = claimed;
+    } else {
+      const { data: created, error: insErr } = await db
+        .from("users")
+        .insert({ phone: normalized, username: normalized })
+        .select("id, username, phone, password_hash")
+        .single();
+      if (insErr || !created) {
+        return NextResponse.json(
+          { error: "خطا در ساخت حساب. دوباره تلاش کن." },
+          { status: 500 }
+        );
+      }
+      user = created;
+    }
   }
 
   await createSession({ uid: user.id, username: user.username || normalized });

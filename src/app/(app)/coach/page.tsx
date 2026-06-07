@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/client";
 import { Card, SectionTitle, Skeleton, Chevron } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
@@ -14,6 +15,12 @@ export default function CoachPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [weeklyOpen, setWeeklyOpen] = useState(false);
   const [view, setView] = useState<"hub" | "workout">("hub");
+  const params = useSearchParams();
+
+  // ورودِ مهمان مستقیم به لحظه‌ی آها: /coach?chat=1 گفتگو با جوانه را باز می‌کند.
+  useEffect(() => {
+    if (params.get("chat") === "1") setChatOpen(true);
+  }, [params]);
 
   useEffect(() => {
     let alive = true;
