@@ -1,10 +1,10 @@
 FROM node:20-alpine AS base
+RUN npm install -g pnpm
 
 # ─── Stage 1: install dependencies ───────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm install --frozen-lockfile
 
 # ─── Stage 2: build ──────────────────────────────────────────────────────────
@@ -21,11 +21,10 @@ ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm build
 
 # ─── Stage 3: minimal production runner ──────────────────────────────────────
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
