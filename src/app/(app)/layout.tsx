@@ -14,20 +14,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect("/login");
 
   let displayName = session.username;
+  let isGuest = false;
   try {
     const db = getServiceClient();
     const { data } = await db
       .from("users")
-      .select("display_name")
+      .select("display_name, is_guest")
       .eq("id", session.uid)
       .maybeSingle();
     if (data?.display_name) displayName = data.display_name;
+    isGuest = !!data?.is_guest;
   } catch {
     // اگر اتصال دیتابیس برقرار نبود، با همان نام کاربری ادامه بده
   }
 
+  // برای مهمان، نامِ نمایشیِ تمیزتر (به‌جای guest_xxxx)
+  if (isGuest && displayName === session.username) displayName = "مهمان";
+
   return (
-    <AppChrome username={session.username} displayName={displayName} isAdmin={isAdmin(session)}>
+    <AppChrome username={session.username} displayName={displayName} isAdmin={isAdmin(session)} isGuest={isGuest}>
       {children}
     </AppChrome>
   );

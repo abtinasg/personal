@@ -1,5 +1,5 @@
 import { authed, ok } from "@/lib/api";
-import { FREE_DAILY, PACKS, getWallet } from "@/lib/billing";
+import { FREE_DAILY, getWallet, getActiveSubscription } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
@@ -8,6 +8,7 @@ export async function GET() {
   if ("error" in a) return a.error;
 
   const credits = await getWallet(a.db, a.uid);
+  const plan = await getActiveSubscription(a.db, a.uid);
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -28,7 +29,7 @@ export async function GET() {
     credits,
     freeUsedToday: count ?? 0,
     freeDaily: FREE_DAILY,
-    packs: PACKS,
+    plan,
     ledger: ledger ?? [],
   });
 }

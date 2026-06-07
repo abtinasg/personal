@@ -1,13 +1,26 @@
 import { NextResponse } from "next/server";
 import type { getServiceClient } from "@/lib/supabase";
-import { ABUSE_PER_MIN, FREE_DAILY, costOf } from "@/lib/billing";
+import {
+  ABUSE_PER_MIN,
+  FREE_DAILY,
+  HEAVY_DAILY,
+  HEAVY_ENDPOINTS,
+  costOf,
+  isHeavy,
+  getActiveSubscription,
+} from "@/lib/billing";
 
 type DB = ReturnType<typeof getServiceClient>;
 
+const PLAN_OK = -1; // اعتبار = -1 یعنی «از طریقِ اشتراک، بدونِ کسرِ اعتبار»
+
 /**
  * نگهبانِ هوش مصنوعی: هر مسیرِ AI بلافاصله بعد از authed() این را صدا می‌زند.
- * ترتیب: (۱) سقفِ ضدِسوءاستفاده در دقیقه، (۲) سهمیهٔ رایگانِ روزانه،
- * (۳) مصرفِ اعتبارِ کیفِ پول. هر فراخوانیِ مجاز یک رویداد در ai_usage ثبت می‌کند.
+ * ترتیب:
+ *   (۱) سقفِ ضدِسوءاستفاده در دقیقه (محافظت).
+ *   (۲) اشتراکِ فعال؟ → سرویسِ سبک نامحدود؛ سرویسِ سنگین تا سقفِ روزانه‌ی پلن.
+ *   (۳) بدونِ اشتراک → سهمیه‌ی رایگانِ روزانه، سپس اعتبارِ کیفِ پول.
+ * هر فراخوانیِ مجاز یک رویداد در ai_usage ثبت می‌کند.
  */
 export async function guardAI(
   db: DB,
@@ -32,9 +45,41 @@ export async function guardAI(
     };
   }
 
-  // (۲) پی‌وال — سهمیهٔ رایگانِ امروز
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
+
+  // (۲) اشتراکِ فعال
+  const sub = await getActiveSubscription(db, uid);
+  if (sub) {
+    if (!isHeavy(endpoint)) {
+      // سرویسِ سبک → نامحدود
+      await db.from("ai_usage").insert({ user_id: uid, endpoint });
+      return { ok: true, credits: PLAN_OK };
+    }
+    // سرویسِ سنگین → تا سقفِ روزانه‌ی پلن
+    const { count: heavyToday } = await db
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .in("endpoint", HEAVY_ENDPOINTS)
+      .gte("created_at", startOfDay.toISOString());
+    const limit = HEAVY_DAILY[sub.plan] ?? 0;
+    if ((heavyToday ?? 0) < limit) {
+      await db.from("ai_usage").insert({ user_id: uid, endpoint });
+      return { ok: true, credits: PLAN_OK };
+    }
+    return {
+      error: NextResponse.json(
+        {
+          error: "سقفِ تحلیل‌های سنگینِ امروزِ پلنت پر شد. فردا دوباره، یا به پرو ارتقا بده.",
+          code: "PLAN_LIMIT",
+        },
+        { status: 402 }
+      ),
+    };
+  }
+
+  // (۳) بدونِ اشتراک — سهمیه‌ی رایگانِ امروز، سپس اعتبار
   const { count: usedToday } = await db
     .from("ai_usage")
     .select("id", { count: "exact", head: true })
@@ -43,7 +88,6 @@ export async function guardAI(
 
   let credits = 0;
   if ((usedToday ?? 0) >= FREE_DAILY) {
-    // (۳) فراتر از سهمیهٔ رایگان → مصرفِ اعتبار به‌صورتِ اتمیک
     const { data, error } = await db.rpc("spend_credit", {
       p_user: uid,
       p_cost: costOf(endpoint),
@@ -58,15 +102,13 @@ export async function guardAI(
     if (credits < 0) {
       return {
         error: NextResponse.json(
-          { error: "اعتبارت تموم شد. برای ادامه کیف پولت رو شارژ کن.", code: "INSUFFICIENT_CREDITS" },
+          { error: "سهمیه‌ی امروزت تموم شد. برای ادامه پلاس بگیر یا کیف پولت رو شارژ کن.", code: "INSUFFICIENT_CREDITS" },
           { status: 402 }
         ),
       };
     }
   }
 
-  // ثبتِ رویدادِ مصرف (هم برای سهمیهٔ رایگان، هم پولی)
   await db.from("ai_usage").insert({ user_id: uid, endpoint });
-
   return { ok: true, credits };
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
-import { addCredits } from "@/lib/billing";
+import { addCredits, activateSubscription, planDays } from "@/lib/billing";
 import { verifyPayment } from "@/lib/zibal";
 
 export const runtime = "nodejs";
@@ -23,15 +23,19 @@ export async function GET(req: Request) {
   const db = getServiceClient();
   const { data: payment } = await db
     .from("payments")
-    .select("id, user_id, amount, credits, status")
+    .select("id, user_id, amount, credits, status, plan, cycle")
     .eq("authority", authority)
     .maybeSingle();
 
   if (!payment) return fail("notfound");
 
-  // قبلاً موفق شده — دوباره شارژ نکن (idempotent)
+  const successUrl = payment.plan
+    ? `${origin}/wallet?status=success&plan=${encodeURIComponent(payment.plan)}`
+    : `${origin}/wallet?status=success&credits=${payment.credits}`;
+
+  // قبلاً موفق شده — دوباره فعال نکن (idempotent)
   if (payment.status === "paid") {
-    return NextResponse.redirect(`${origin}/wallet?status=success&credits=${payment.credits}`);
+    return NextResponse.redirect(successUrl);
   }
 
   if (success !== "1") {
@@ -61,8 +65,14 @@ export async function GET(req: Request) {
     .maybeSingle();
 
   if (claimed) {
-    await addCredits(db, payment.user_id, payment.credits, "purchase");
+    if (payment.plan && payment.cycle) {
+      // پرداختِ پلن → اشتراک را فعال/تمدید کن (نه اعتبار)
+      await activateSubscription(db, payment.user_id, payment.plan, payment.cycle, planDays(payment.cycle));
+    } else {
+      // سازگاریِ عقب‌رو: بسته‌ی اعتباریِ قدیمی
+      await addCredits(db, payment.user_id, payment.credits, "purchase");
+    }
   }
 
-  return NextResponse.redirect(`${origin}/wallet?status=success&credits=${payment.credits}`);
+  return NextResponse.redirect(successUrl);
 }

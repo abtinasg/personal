@@ -20,30 +20,30 @@ type Screen = "splash" | "onboarding" | "phone" | "code" | "credentials" | "pass
 const SLIDES: { icon: string; title: string; desc: string; tint: string; accent: string; mascot?: boolean }[] = [
   {
     icon: "chart",
-    title: "به امروز خوش اومدی",
-    desc: "فردا دیر است. عمرت جمعِ همین «امروز»هاست — از همین امروز شروع کن.",
+    title: "هدف‌هات رو می‌دونی",
+    desc: "کاری که سخته، انجام‌دادنشه. جوانه هر روز کنارته تا از «می‌دونم» برسی به «انجامش دادم».",
     tint: "var(--t-sage)",
     accent: "var(--sage)",
     mascot: true,
   },
   {
     icon: "rocket",
-    title: "هدف‌هایت را زنده کن",
-    desc: "ماموریت بساز و آن را به عادت‌های اتمیِ روزانه بشکن؛ پیشرفتت را با حلقه‌ها زنده ببین.",
+    title: "بزرگ رو کوچیک می‌کنیم",
+    desc: "هدفِ بزرگت رو بگو؛ جوانه همون لحظه می‌شکنتش به چند قدمِ کوچیکِ امروز. اون‌قدر کوچیک که نشه نه گفت.",
     tint: "var(--t-blue)",
     accent: "var(--blue)",
   },
   {
     icon: "flame",
-    title: "همه‌چیز، یک‌جا",
-    desc: "کالری، بودجه، آب و سلامتی — با ثبتِ سریع و هوشمند، بی‌شلوغی و آرام.",
+    title: "حواسش به همه‌چیز هست",
+    desc: "کالری، آب، خرج و تمرین — جوانه پیگیرِ همه‌شونه، بی‌شلوغی و آروم. تو فقط زندگی کن.",
     tint: "var(--t-peach)",
     accent: "var(--peach)",
   },
   {
     icon: "compass",
-    title: "مربیِ همیشه‌همراه",
-    desc: "یک مربیِ هوشمند کنارت است و ورودت ساده و امن، فقط با شمارهٔ موبایل انجام می‌شود.",
+    title: "تنهات نمی‌ذاره",
+    desc: "صبح یادت می‌ندازه، شب باهات مرور می‌کنه. شروع ساده‌ست — همین حالا یه هدف بهش بگو.",
     tint: "var(--t-lav)",
     accent: "var(--lav)",
   },
@@ -83,6 +83,22 @@ export default function LoginPage() {
     try { localStorage.setItem(ONBOARD_KEY, "1"); } catch { /* noop */ }
     setErr("");
     setScreen("phone");
+  }
+
+  // «اول بچش» — ورودِ مهمان بدونِ شماره؛ شماره بعداً موقعِ ذخیره گرفته می‌شود.
+  async function startGuest() {
+    try { localStorage.setItem(ONBOARD_KEY, "1"); } catch { /* noop */ }
+    setErr("");
+    setBusy(true);
+    try {
+      await apiSend("/api/auth/guest", "POST");
+      // مستقیم به لحظه‌ی آها: گفتگو با جوانه باز می‌شود.
+      router.replace("/coach?chat=1");
+      router.refresh();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+      setBusy(false);
+    }
   }
 
   // مرحلهٔ شماره: اول بررسی کن رمز دارد یا نه؛ اگر دارد برو صفحهٔ رمز، وگرنه کد بفرست.
@@ -218,7 +234,7 @@ export default function LoginPage() {
   }
 
   if (screen === "onboarding") {
-    return <Onboarding onStart={finishOnboarding} onLogin={finishOnboarding} />;
+    return <Onboarding onStart={startGuest} onLogin={finishOnboarding} busy={busy} />;
   }
 
   if (screen === "credentials") {
@@ -527,13 +543,6 @@ export default function LoginPage() {
               ادامه
             </PillButton>
 
-            <button
-              className="w-full h-12 rounded-full border border-[var(--secondary)]/30 text-[var(--label)] text-[15px] font-semibold flex items-center justify-center gap-2 mt-3 active:scale-[0.97] transition bg-[var(--bg)]"
-              onClick={() => { setErr(""); setScreen("credentials"); }}
-            >
-              <KeyRound size={16} />
-              ورود مدیر
-            </button>
           </>
         ) : (
           /* ----- مرحلهٔ کد ----- */
@@ -706,7 +715,7 @@ function SplashScreen({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => void }) {
+function Onboarding({ onStart, onLogin, busy }: { onStart: () => void; onLogin: () => void; busy?: boolean }) {
   const [i, setI] = useState(0);
   const s = SLIDES[i];
   const last = i === SLIDES.length - 1;
@@ -768,19 +777,22 @@ function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => 
         </div>
         <button
           onClick={last ? onStart : () => setI(i + 1)}
-          className="w-full h-14 rounded-full text-white text-[16px] font-bold flex items-center justify-center gap-2.5 active:scale-[0.97] transition"
+          disabled={busy}
+          className="w-full h-14 rounded-full text-white text-[16px] font-bold flex items-center justify-center gap-2.5 active:scale-[0.97] transition disabled:opacity-60"
           style={{
             background: "var(--ink)",
             boxShadow: "0 14px 28px -14px rgba(20,22,30,0.6)",
           }}
         >
-          {last ? (
-            <>بزن بریم <AppIcon name="rocket" size={19} /></>
+          {busy ? (
+            <Spinner />
+          ) : last ? (
+            <>بزن بریم، رایگان امتحان کن <AppIcon name="rocket" size={19} /></>
           ) : (
             <>بعدی <ChevronLeft /></>
           )}
         </button>
-        <button onClick={onLogin} className="w-full text-center text-ios-blue text-[15px] font-medium active:opacity-60">
+        <button onClick={onLogin} disabled={busy} className="w-full text-center text-ios-blue text-[15px] font-medium active:opacity-60 disabled:opacity-50">
           قبلاً حساب دارم؟ ورود
         </button>
       </div>

@@ -10,9 +10,9 @@ type Saved = { type: string; label: string };
 type Msg = { role: "user" | "assistant"; content: string; saved?: Saved[]; image?: string };
 
 const SUGGESTIONS = [
-  "نهارِ امروز چلوکباب با دوغ بود",
-  "امروز بی‌حال و بی‌انگیزه‌ام",
-  "یه عادت کوچیک برای شروع پیشنهاد بده",
+  "می‌خوام منظم‌تر بشم",
+  "می‌خوام لاغر شم",
+  "می‌خوام پس‌انداز کنم",
 ];
 
 /** عکس را روی حداکثر ۱۰۲۴px کوچک و به JPEG با کیفیتِ متوسط تبدیل می‌کند تا حجمِ آپلود کم بماند. */
@@ -92,15 +92,15 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="مربیِ تو" fillHeight>
+    <Sheet open={open} onClose={onClose} title="جوانه" fillHeight>
       <div className="flex flex-col flex-1 min-h-0">
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto space-y-3 py-2">
           {msgs.length === 0 && !busy && (
             <div className="text-center py-6">
-              <div className="h-16 w-16 mx-auto mb-3 rounded-[20px] bg-ios-blue/10 text-ios-blue flex items-center justify-center"><AppIcon name="compass" size={30} /></div>
-              <p className="font-bold text-[17px]">با مربی‌ات حرف بزن</p>
+              <div className="h-16 w-16 mx-auto mb-3 rounded-[20px] bg-ios-blue/10 text-ios-blue flex items-center justify-center"><AppIcon name="sprout" size={30} /></div>
+              <p className="font-bold text-[17px]">سلام، من جوانه‌ام 🌱</p>
               <p className="secondary text-[14px] mt-1 leading-relaxed px-4">
-                هرچی تو ذهنته بگو — مربی هویت‌ها، عادت‌ها و ماموریتِ تو رو می‌شناسه. حتی بگو چی خوردی یا عکسِ غذات رو بفرست، خودش کالریش رو حساب و ثبت می‌کنه.
+                این روزها بزرگ‌ترین هدفت چیه؟ بگو تا با هم بشکنیمش به قدم‌های کوچیکِ امروز. حتی می‌تونی بگی چی خوردی یا عکسِ غذات رو بفرستی — خودم ثبتش می‌کنم.
               </p>
               <div className="flex flex-col gap-2 mt-5">
                 {SUGGESTIONS.map((s) => (
