@@ -254,6 +254,15 @@ function SettingsSheet({
         </div>
       </div>
 
+      <a
+        href="/wallet"
+        onClick={onClose}
+        className="flex w-full items-center justify-between rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 text-[16px] font-semibold active:opacity-60 mb-4"
+      >
+        <span>کیف پول و اعتبار</span>
+        <Chevron dir="forward" size={20} className="secondary" />
+      </a>
+
       <div className="space-y-3">
         <Field label="هدف کالری روزانه">
           <input className="ios-input" inputMode="numeric" value={cal} onChange={(e) => setCal(e.target.value)} placeholder="۲۰۰۰" />
@@ -272,14 +281,6 @@ function SettingsSheet({
       <Button onClick={save} disabled={saving} className="w-full mt-5 flex items-center justify-center gap-2">
         {saving && <Spinner />} ذخیره
       </Button>
-      <a
-        href="/wallet"
-        onClick={onClose}
-        className="mt-3 flex w-full items-center justify-between rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 text-[16px] font-semibold active:opacity-60"
-      >
-        <span>کیف پول و اعتبار</span>
-        <Chevron dir="forward" size={20} className="secondary" />
-      </a>
       {isAdmin && (
         <a
           href="/admin"
