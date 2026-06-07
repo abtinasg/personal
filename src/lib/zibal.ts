@@ -26,24 +26,38 @@ export async function requestPayment(opts: {
   callbackUrl: string;
   mobile?: string;
 }): Promise<{ authority: string; payUrl: string }> {
-  const res = await fetch(`${BASE}/v1/request`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      merchant: merchantId(),
-      amount: opts.amount * 10, // تومان → ریال
-      callbackUrl: opts.callbackUrl,
-      description: opts.description,
-      ...(opts.mobile ? { mobile: opts.mobile } : {}),
-    }),
-  });
-  const json = await res.json().catch(() => null);
-  const trackId = json?.trackId != null ? String(json.trackId) : undefined;
-  if (!res.ok || !trackId || json?.result !== 100) {
-    const code = json?.result ?? res.status;
-    throw new Error(`خطا از زیبال هنگامِ ساختِ پرداخت (${code}).`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 ثانیه تایم‌اوت
+
+  try {
+    const res = await fetch(`${BASE}/v1/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        merchant: merchantId(),
+        amount: opts.amount * 10, // تومان → ریال
+        callbackUrl: opts.callbackUrl,
+        description: opts.description,
+        ...(opts.mobile ? { mobile: opts.mobile } : {}),
+      }),
+      signal: controller.signal,
+    });
+    const json = await res.json().catch(() => null);
+    const trackId = json?.trackId != null ? String(json.trackId) : undefined;
+    if (!res.ok || !trackId || json?.result !== 100) {
+      const code = json?.result ?? res.status;
+      const detailedMsg = json?.message || `وضعیتِ ${code}`;
+      throw new Error(`خطا از زیبال: ${detailedMsg}`);
+    }
+    return { authority: trackId, payUrl: startPayUrl(trackId) };
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("درخواستِ به زیبال پاسخ نداد. لطفاً دوباره تلاش کنید.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return { authority: trackId, payUrl: startPayUrl(trackId) };
 }
 
 /**

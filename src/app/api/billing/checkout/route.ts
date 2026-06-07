@@ -45,7 +45,9 @@ export async function POST(req: Request) {
     await a.db.from("payments").update({ authority }).eq("id", payment.id);
     return ok({ url: payUrl });
   } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : "اتصال به درگاهِ پرداخت ناموفق بود.";
+    console.error("Checkout error:", { error: errorMsg, packId: pack.id, userId: a.uid });
     await a.db.from("payments").update({ status: "failed" }).eq("id", payment.id);
-    return bad(e instanceof Error ? e.message : "اتصال به درگاهِ پرداخت ناموفق بود.", 502);
+    return bad(errorMsg, 502);
   }
 }
