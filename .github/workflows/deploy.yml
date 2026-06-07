@@ -28,3 +28,12 @@ jobs:
         run: |
           docker push ${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:latest
           docker push ${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:${{ github.sha }}
+
+      - name: Update Arvan app image to new SHA
+        run: |
+          curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -X PATCH \
+            -H "Authorization: Apikey ${{ secrets.ARVAN_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            "https://napi.arvancloud.ir/caas/v1/namespaces/${{ secrets.ARVAN_NAMESPACE }}/apps/${{ secrets.ARVAN_APP_ID }}" \
+            -d "{\"image\": \"${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:${{ github.sha }}\"}"
