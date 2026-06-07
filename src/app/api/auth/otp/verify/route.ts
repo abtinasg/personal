@@ -26,19 +26,19 @@ export async function POST(req: Request) {
     const db2 = getServiceClient();
     let { data: user } = await db2
       .from("users")
-      .select("id, username, phone")
+      .select("id, username, phone, password_hash")
       .eq("phone", normalized)
       .maybeSingle();
     if (!user) {
       const { data: created } = await db2
         .from("users")
         .insert({ phone: normalized, username: normalized })
-        .select("id, username, phone")
+        .select("id, username, phone, password_hash")
         .single();
       user = created;
     }
     if (user) await createSession({ uid: user.id, username: user.username || normalized });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, hasPassword: !!user?.password_hash });
   }
 
   const db = getServiceClient();
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
   let { data: user } = await db
     .from("users")
-    .select("id, username, phone")
+    .select("id, username, phone, password_hash")
     .eq("phone", normalized)
     .maybeSingle();
 
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
     const { data: created, error: insErr } = await db
       .from("users")
       .insert({ phone: normalized, username: normalized })
-      .select("id, username, phone")
+      .select("id, username, phone, password_hash")
       .single();
     if (insErr || !created) {
       return NextResponse.json(
@@ -105,5 +105,5 @@ export async function POST(req: Request) {
 
   await createSession({ uid: user.id, username: user.username || normalized });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, hasPassword: !!user.password_hash });
 }

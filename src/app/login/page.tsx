@@ -6,7 +6,7 @@ import { apiSend } from "@/lib/client";
 import { Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 import { Mascot } from "@/components/Mascot";
-import { Phone, ShieldCheck, KeyRound, User } from "lucide-react";
+import { Phone, ShieldCheck, KeyRound, User, Download, Share, Plus, X } from "lucide-react";
 
 const APP = process.env.NEXT_PUBLIC_APP_NAME || "امروز";
 const TAGLINE = "همین امروز";
@@ -14,7 +14,7 @@ const ONBOARD_KEY = "zendegi:onboarded";
 const CODE_LEN = 5;
 const RESEND_SECONDS = 60;
 
-type Screen = "splash" | "onboarding" | "phone" | "code" | "credentials";
+type Screen = "splash" | "onboarding" | "phone" | "code" | "credentials" | "password" | "setpass";
 
 // هر اسلاید یک ته‌رنگِ پاستلی + اکسنت از پالتِ جدید (آبی/هلویی/سبز/یاسی) دارد.
 const SLIDES: { icon: string; title: string; desc: string; tint: string; accent: string; mascot?: boolean }[] = [
@@ -56,6 +56,7 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [resendIn, setResendIn] = useState(0);
@@ -84,16 +85,74 @@ export default function LoginPage() {
     setScreen("phone");
   }
 
-  async function requestCode() {
+  // مرحلهٔ شماره: اول بررسی کن رمز دارد یا نه؛ اگر دارد برو صفحهٔ رمز، وگرنه کد بفرست.
+  async function continueFromPhone() {
     setErr("");
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 10) return setErr("شمارهٔ موبایلت رو درست وارد کن.");
     setBusy(true);
     try {
-      await apiSend("/api/auth/otp/request", "POST", { phone });
-      setCode("");
-      setScreen("code");
-      setResendIn(RESEND_SECONDS);
+      const r = await apiSend<{ hasPassword: boolean }>("/api/auth/phone/check", "POST", { phone });
+      if (r.hasPassword) {
+        setPassword("");
+        setScreen("password");
+        return;
+      }
+      await sendCode();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ارسال کد و رفتن به صفحهٔ کد (با مدیریت بازهٔ زمانی). busy را خودش مدیریت نمی‌کند.
+  async function sendCode() {
+    await apiSend("/api/auth/otp/request", "POST", { phone });
+    setCode("");
+    setScreen("code");
+    setResendIn(RESEND_SECONDS);
+  }
+
+  // «رمز را فراموش کردی؟ ورود با کد» — مستقیم مسیر OTP.
+  async function forgotPassword() {
+    setErr("");
+    setBusy(true);
+    try {
+      await sendCode();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ورود کاربر عادی با شماره + رمز (مسیر B روت credentials).
+  async function loginWithPassword() {
+    setErr("");
+    if (!password.trim()) return setErr("رمز عبورت رو وارد کن.");
+    setBusy(true);
+    try {
+      await apiSend("/api/auth/credentials", "POST", { username: phone, password });
+      router.replace("/");
+      router.refresh();
+    } catch (e: any) {
+      setErr(humanize(e?.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ساخت رمز بعد از ورود با کد، سپس ورود به اپ.
+  async function submitSetPassword() {
+    setErr("");
+    if (password.length < 6) return setErr("رمز باید حداقل ۶ کاراکتر باشد.");
+    if (password !== password2) return setErr("رمز و تکرارش یکی نیستند.");
+    setBusy(true);
+    try {
+      await apiSend("/api/auth/password/set", "POST", { password });
+      router.replace("/");
+      router.refresh();
     } catch (e: any) {
       setErr(humanize(e?.message));
     } finally {
@@ -136,7 +195,14 @@ export default function LoginPage() {
     if (c.length < CODE_LEN) return setErr("کد را کامل وارد کن.");
     setBusy(true);
     try {
-      await apiSend("/api/auth/otp/verify", "POST", { phone, code: c });
+      const r = await apiSend<{ hasPassword: boolean }>("/api/auth/otp/verify", "POST", { phone, code: c });
+      if (!r.hasPassword) {
+        // کاربر هنوز رمز ندارد — برای دفعهٔ بعد رمز بسازد.
+        setPassword("");
+        setPassword2("");
+        setScreen("setpass");
+        return;
+      }
       router.replace("/");
       router.refresh();
     } catch (e: any) {
@@ -228,6 +294,149 @@ export default function LoginPage() {
     );
   }
 
+  if (screen === "password") {
+    return (
+      <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
+        <div
+          className="flex-none flex flex-col"
+          style={{ height: "38dvh", background: "linear-gradient(135deg, var(--t-blue) 0%, var(--t-sage) 100%)" }}
+        >
+          <div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
+            <button
+              onClick={() => { setErr(""); setScreen("phone"); }}
+              className="h-9 w-9 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center text-[var(--ink)] shadow-soft active:scale-90 transition"
+              aria-label="برگشت"
+            >
+              <ChevronRight />
+            </button>
+            <span className="text-[var(--secondary)] text-[14px] font-medium">خوش برگشتی</span>
+          </div>
+          <div className="flex-1 flex items-end justify-center">
+            <Mascot size={132} pose="wave" float />
+          </div>
+        </div>
+        <div
+          className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
+          style={{ minHeight: "62dvh" }}
+        >
+          <div className="mb-6">
+            <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">رمزت رو وارد کن</h1>
+            <p className="text-[15px] text-[var(--secondary)] mt-1">
+              برای <span dir="ltr" className="font-semibold">{toFaDigits(phone)}</span> رمز عبور تعیین شده.
+            </p>
+          </div>
+
+          <div className="relative mb-5">
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
+              <KeyRound size={18} />
+            </span>
+            <input
+              className="ios-input w-full pr-10 text-right"
+              placeholder="رمز عبور"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && loginWithPassword()}
+              disabled={busy}
+              autoFocus
+            />
+          </div>
+
+          {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
+
+          <PillButton onClick={loginWithPassword} disabled={busy} busy={busy}>
+            <KeyRound size={18} />
+            ورود
+          </PillButton>
+
+          <button
+            className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60 disabled:opacity-50"
+            onClick={forgotPassword}
+            disabled={busy}
+          >
+            رمزت رو فراموش کردی؟ ورود با کد
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "setpass") {
+    return (
+      <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
+        <div
+          className="flex-none flex flex-col"
+          style={{ height: "38dvh", background: "linear-gradient(135deg, var(--t-sage) 0%, var(--t-blue) 100%)" }}
+        >
+          <div className="flex items-center justify-end px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
+            <span className="text-[var(--secondary)] text-[14px] font-medium">یک قدم تا پایان</span>
+          </div>
+          <div className="flex-1 flex items-end justify-center">
+            <Mascot size={132} pose="cheer" float />
+          </div>
+        </div>
+        <div
+          className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
+          style={{ minHeight: "62dvh" }}
+        >
+          <div className="mb-6">
+            <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">یک رمز برای خودت بساز</h1>
+            <p className="text-[15px] text-[var(--secondary)] mt-1">دفعهٔ بعد بدون پیامک و سریع با همین رمز وارد می‌شوی.</p>
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <div className="relative">
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
+                <KeyRound size={18} />
+              </span>
+              <input
+                className="ios-input w-full pr-10 text-right"
+                placeholder="رمز عبور (حداقل ۶ کاراکتر)"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={busy}
+                autoFocus
+              />
+            </div>
+            <div className="relative">
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
+                <KeyRound size={18} />
+              </span>
+              <input
+                className="ios-input w-full pr-10 text-right"
+                placeholder="تکرار رمز عبور"
+                type="password"
+                autoComplete="new-password"
+                value={password2}
+                onChange={(e) => setPassword2(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitSetPassword()}
+                disabled={busy}
+              />
+            </div>
+          </div>
+
+          {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
+
+          <PillButton onClick={submitSetPassword} disabled={busy} busy={busy}>
+            <ShieldCheck size={18} />
+            ذخیره و ورود
+          </PillButton>
+
+          <button
+            className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60 disabled:opacity-50"
+            onClick={() => { router.replace("/"); router.refresh(); }}
+            disabled={busy}
+          >
+            فعلاً نه، بعداً تنظیم می‌کنم
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const isCode = screen === "code";
 
   return (
@@ -305,7 +514,7 @@ export default function LoginPage() {
                 autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && requestCode()}
+                onKeyDown={(e) => e.key === "Enter" && continueFromPhone()}
                 disabled={busy}
                 style={{ textAlign: "right", direction: "ltr", letterSpacing: "0.04em" }}
               />
@@ -313,16 +522,16 @@ export default function LoginPage() {
 
             {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
 
-            <PillButton onClick={requestCode} disabled={busy} busy={busy}>
+            <PillButton onClick={continueFromPhone} disabled={busy} busy={busy}>
               <Phone size={18} />
-              دریافت کد
+              ادامه
             </PillButton>
 
             <button
               className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60"
               onClick={() => { setErr(""); setScreen("credentials"); }}
             >
-              ورود با رمز عبور
+              ورود مدیر
             </button>
           </>
         ) : (
@@ -480,6 +689,9 @@ function SplashScreen({ onContinue }: { onContinue: () => void }) {
         <p className="secondary text-[17px] mt-2 font-medium tracking-wide">{TAGLINE}</p>
       </div>
 
+      {/* پیشنهادِ نصب اپ روی صفحهٔ خانه (PWA) */}
+      <PwaInstallHint />
+
       {/* دکمه ادامه — قرصِ مشکیِ امضایی */}
       <button
         onClick={onContinue}
@@ -572,6 +784,135 @@ function Onboarding({ onStart, onLogin }: { onStart: () => void; onLogin: () => 
         </button>
       </div>
     </div>
+  );
+}
+
+const PWA_HINT_KEY = "zendegi:pwa-hint-dismissed";
+
+type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+
+function PwaInstallHint() {
+  const [deferred, setDeferred] = useState<BIPEvent | null>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [standalone, setStandalone] = useState(false);
+  const [showIOSSheet, setShowIOSSheet] = useState(false);
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    // اگر از قبل به‌صورت اپ باز شده، چیزی نشان نده.
+    const isStandalone =
+      window.matchMedia?.("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+    setStandalone(!!isStandalone);
+
+    const ua = window.navigator.userAgent;
+    const ios = /iphone|ipad|ipod/i.test(ua) && !(window as any).MSStream;
+    setIsIOS(ios);
+
+    let alreadyDismissed = false;
+    try { alreadyDismissed = localStorage.getItem(PWA_HINT_KEY) === "1"; } catch { /* noop */ }
+    setDismissed(alreadyDismissed);
+
+    const onBip = (e: Event) => {
+      e.preventDefault();
+      setDeferred(e as BIPEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onBip);
+    return () => window.removeEventListener("beforeinstallprompt", onBip);
+  }, []);
+
+  function close() {
+    setDismissed(true);
+    try { localStorage.setItem(PWA_HINT_KEY, "1"); } catch { /* noop */ }
+  }
+
+  async function install() {
+    if (deferred) {
+      await deferred.prompt();
+      try { await deferred.userChoice; } catch { /* noop */ }
+      setDeferred(null);
+      close();
+    } else if (isIOS) {
+      setShowIOSSheet(true);
+    }
+  }
+
+  // فقط وقتی نشان بده که قابل‌نصب است و قبلاً رد نشده و داخلِ اپ نیست.
+  const canShow = !standalone && !dismissed && (!!deferred || isIOS);
+  if (!canShow) return null;
+
+  return (
+    <>
+      <div
+        className="relative z-10 w-full max-w-sm mb-5 rounded-3xl px-4 py-3.5 flex items-center gap-3 glass border border-[var(--border)] animate-fade-up"
+        style={{ boxShadow: "var(--sh)" }}
+      >
+        <div
+          className="h-11 w-11 rounded-2xl flex-none flex items-center justify-center"
+          style={{ background: "var(--t-blue)", color: "var(--blue)" }}
+        >
+          <Download size={20} strokeWidth={2.1} />
+        </div>
+        <div className="flex-1 text-right">
+          <p className="text-[14px] font-bold text-[var(--label)] leading-tight">{APP} را نصب کن</p>
+          <p className="text-[12px] text-[var(--secondary)] mt-0.5 leading-snug">
+            بدون مرورگر، سریع و تمام‌صفحه — مثل یک اپ واقعی روی گوشی‌ات.
+          </p>
+        </div>
+        <button
+          onClick={install}
+          className="flex-none h-9 px-4 rounded-full text-white text-[13px] font-bold active:scale-95 transition"
+          style={{ background: "var(--ink)" }}
+        >
+          نصب
+        </button>
+        <button
+          onClick={close}
+          aria-label="بستن"
+          className="flex-none h-7 w-7 -mr-1 rounded-full flex items-center justify-center text-[var(--secondary)] active:opacity-60"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {showIOSSheet && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-up"
+          onClick={() => setShowIOSSheet(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-[32px] bg-[var(--card-solid)] px-6 pt-6 pb-[max(28px,env(safe-area-inset-bottom))]"
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[20px] font-extrabold text-[var(--label)]">نصب روی آیفون</h3>
+              <button
+                onClick={() => setShowIOSSheet(false)}
+                aria-label="بستن"
+                className="h-8 w-8 rounded-full bg-[var(--bg)] flex items-center justify-center text-[var(--secondary)] active:scale-90 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ol className="space-y-4">
+              <li className="flex items-center gap-3">
+                <span className="h-9 w-9 rounded-2xl flex-none flex items-center justify-center text-[var(--blue)]" style={{ background: "var(--t-blue)" }}>
+                  <Share size={18} />
+                </span>
+                <p className="text-[15px] text-[var(--label)]">روی دکمهٔ <b>اشتراک‌گذاری</b> در نوار سافاری بزن.</p>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-9 w-9 rounded-2xl flex-none flex items-center justify-center text-[var(--sage)]" style={{ background: "var(--t-sage)" }}>
+                  <Plus size={18} />
+                </span>
+                <p className="text-[15px] text-[var(--label)]">گزینهٔ <b>«افزودن به صفحهٔ خانه»</b> را انتخاب کن.</p>
+              </li>
+            </ol>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import { authed, bad, ok } from "@/lib/api";
 import { findPack } from "@/lib/billing";
-import { requestPayment } from "@/lib/zarinpal";
+import { requestPayment } from "@/lib/zibal";
 
 export const runtime = "nodejs";
 
