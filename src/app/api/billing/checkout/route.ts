@@ -14,11 +14,17 @@ function baseUrl(req: Request): string {
 
 export async function POST(req: Request) {
   const a = await authed();
-  if ("error" in a) return a.error;
+  if ("error" in a) {
+    console.error("Checkout auth failed");
+    return a.error;
+  }
 
   const body = await req.json().catch(() => ({}));
   const pack = findPack(String(body?.packId ?? ""));
-  if (!pack) return bad("بسته‌ی نامعتبر.");
+  if (!pack) {
+    console.error("Checkout invalid pack", { packId: body?.packId });
+    return bad("بسته‌ی نامعتبر.");
+  }
 
   // ردیفِ پرداختِ در حالِ انتظار (پلن/دوره را هم نگه می‌داریم تا callback فعالش کند)
   const parsed = parsePackId(pack.id);
@@ -34,7 +40,10 @@ export async function POST(req: Request) {
     })
     .select("id")
     .single();
-  if (insErr || !payment) return bad("ثبتِ پرداخت ناموفق بود.", 500);
+  if (insErr || !payment) {
+    console.error("Checkout DB insert failed", { error: insErr?.message || "unknown" });
+    return bad("ثبتِ پرداخت ناموفق بود. دوباره تلاش کن.", 500);
+  }
 
   try {
     const { authority, payUrl } = await requestPayment({
@@ -46,7 +55,7 @@ export async function POST(req: Request) {
     return ok({ url: payUrl });
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : "اتصال به درگاهِ پرداخت ناموفق بود.";
-    console.error("Checkout error:", { error: errorMsg, packId: pack.id, userId: a.uid });
+    console.error("Checkout Zibal error:", { error: errorMsg, packId: pack.id, userId: a.uid });
     await a.db.from("payments").update({ status: "failed" }).eq("id", payment.id);
     return bad(errorMsg, 502);
   }
