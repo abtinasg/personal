@@ -1,24 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="یک‌درصد">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="امروز">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f5b87a"/>
-      <stop offset="0.55" stop-color="#f5956b"/>
-      <stop offset="1" stop-color="#e8724a"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#6cb5e2"/>
+      <stop offset="0.5" stop-color="#2f86bd"/>
+      <stop offset="1" stop-color="#1b6f8f"/>
     </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#bfecd0"/>
+      <stop offset="1" stop-color="#7cc296"/>
+    </linearGradient>
+    <radialGradient id="bud" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffe3a3"/>
+      <stop offset="0.6" stop-color="#f3c563"/>
+      <stop offset="1" stop-color="#e0a83f"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0b3a52" flood-opacity="0.18"/>
+    </filter>
   </defs>
-  <!-- full-bleed warm background so the icon also works as "maskable" -->
+
+  <!-- پس‌زمینه‌ی تمام‌قاب (maskable-safe) -->
   <rect width="512" height="512" fill="url(#bg)"/>
-  <!-- soft area under the growth curve -->
-  <path d="M75 376 C 162 363 209 312 252 243 C 292 179 337 122 433 94 L 433 408 L 75 408 Z" fill="#ffffff" opacity="0.14"/>
-  <!-- منحنیِ رشدِ مرکب: «هر روز یک‌درصد» -->
-  <g fill="none" stroke="#ffffff" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M75 376 C 162 363 209 312 252 243 C 292 179 337 122 433 94"/>
-    <path d="M333 85 H440 V192"/>
-  </g>
-  <!-- نقاطِ روزانه که بزرگ‌تر می‌شوند (مرکب‌شدن) -->
-  <g fill="#ffffff">
-    <circle cx="137" cy="365" r="22"/>
-    <circle cx="252" cy="243" r="28"/>
-    <circle cx="433" cy="94" r="36"/>
+  <!-- درخششِ سپیده‌دم -->
+  <ellipse cx="190" cy="150" rx="260" ry="210" fill="#ffffff" opacity="0.10"/>
+
+  <g filter="url(#soft)">
+    <!-- ساقه‌ی متقارن که رشد می‌کند -->
+    <path d="M256 392 C 250 340 250 296 256 250" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
+
+    <!-- برگِ راست -->
+    <path d="M256 300 C 286 256 336 244 380 248 C 372 296 330 332 282 326 C 262 323 250 312 256 300 Z" fill="url(#leaf)"/>
+    <!-- رگبرگِ راست -->
+    <path d="M272 304 C 308 286 340 274 366 268" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" opacity="0.45"/>
+
+    <!-- برگِ چپ -->
+    <path d="M256 332 C 226 292 178 282 136 288 C 146 332 186 364 230 356 C 250 352 262 343 256 332 Z" fill="url(#leaf)"/>
+    <!-- رگبرگِ چپ -->
+    <path d="M240 335 C 206 318 176 308 152 304" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" opacity="0.45"/>
+
+    <!-- جوانه‌ی طلایی در نوک -->
+    <circle cx="256" cy="236" r="30" fill="url(#bud)"/>
+    <circle cx="247" cy="227" r="9" fill="#ffffff" opacity="0.55"/>
   </g>
 </svg>

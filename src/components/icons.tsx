@@ -1,43 +1,52 @@
 /**
- * نشانِ برند «امروز» — منحنیِ رشدِ مرکب که شتاب می‌گیرد و رو به بالا می‌رود؛
- * سه نقطه‌ی روزانه روی منحنی، استعاره‌ی «هر امروز» که در طول زمان مرکب می‌شود.
- * حالتِ پیش‌فرض خطی (color)؛ با filled یک نشانِ گرادیانیِ تو‌پُر برای آیکونِ اپ می‌دهد.
+ * نشانِ برند «امروز» — «جوانه»: ساقه‌ای که رشد می‌کند، یک برگ و جوانه‌ی طلایی
+ * در نوک. استعاره‌ی تزِ اپ: هر «امروز» یک قدمِ کوچکِ رشد است. هم‌خانواده با
+ * ماسکوتِ «جوانه» (همان پالتِ آبی/سبز/طلایی) تا برند یک‌دست باشد.
+ *
+ * حالتِ پیش‌فرض خطی (color, تک‌رنگ برای نوار/متن)؛ با filled نشانِ گرادیانیِ
+ * تو‌پُر و رنگی برای آیکونِ اپ و سرتیترها.
  */
 export function Logo({ size = 44, color = "#fff", filled = false }: { size?: number; color?: string; filled?: boolean }) {
-  // منحنیِ نمایی از پایین-راست به بالا-چپ (RTL: رشد به سمتِ بالا)
-  const curve = "M3.5 17.6 C 7.6 17 9.8 14.6 11.8 11.4 C 13.7 8.4 15.8 5.7 20.3 4.4";
+  // ساقه‌ی متقارن که از پایین رشد می‌کند تا زیرِ جوانه
+  const stem = "M12 21 C 11.7 17.5 11.7 14.5 12 11.8";
+  // برگِ راست — هم‌فرم با آیکونِ اپ
+  const leafR = "M12 14.4 C 13.4 12.3 15.7 11.7 17.8 11.9 C 17.4 14.1 15.4 15.8 13.2 15.5 C 12.3 15.4 11.7 14.9 12 14.4 Z";
+  // برگِ چپ — قرینه و کمی پایین‌تر
+  const leafL = "M12 15.9 C 10.6 14 8.4 13.5 6.4 13.8 C 6.9 15.9 8.7 17.4 10.8 17 C 11.7 16.8 12.3 16.4 12 15.9 Z";
 
   if (filled) {
-    const gid = "logoGrad";
+    const uid = "logoMark";
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <defs>
-          <linearGradient id={gid} x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#f5b87a" />
-            <stop offset="0.55" stopColor="#f5956b" />
-            <stop offset="1" stopColor="#e8724a" />
+          <linearGradient id={`${uid}-stem`} x1="12" y1="21" x2="12" y2="11" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#5fa8d6" />
+            <stop offset="1" stopColor="#1c5f90" />
           </linearGradient>
+          <linearGradient id={`${uid}-leaf`} x1="12" y1="11.5" x2="12" y2="17.5" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#a7e0bc" />
+            <stop offset="1" stopColor="#5b9d74" />
+          </linearGradient>
+          <radialGradient id={`${uid}-bud`} cx="0.4" cy="0.35" r="0.7">
+            <stop offset="0" stopColor="#ffe3a3" />
+            <stop offset="1" stopColor="#e0a83f" />
+          </radialGradient>
         </defs>
-        {/* سطحِ زیرِ منحنی — حسِ انباشت و رشد */}
-        <path d={`${curve} L 20.3 19.5 L 3.5 19.5 Z`} fill={`url(#${gid})`} opacity={0.22} />
-        <path d={curve} stroke={`url(#${gid})`} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        {/* سرپیکانِ بالا */}
-        <path d="M15.6 4 H20.6 V9" stroke={`url(#${gid})`} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        {/* نقاطِ روزانه که بزرگ‌تر می‌شوند (مرکب‌شدن) */}
-        <circle cx="6.4" cy="17.1" r="0.95" fill="#f5b87a" />
-        <circle cx="11.8" cy="11.4" r="1.3" fill="#f5956b" />
-        <circle cx="20.3" cy="4.4" r="1.7" fill="#e8724a" />
+        <path d={stem} stroke={`url(#${uid}-stem)`} strokeWidth={2.2} strokeLinecap="round" fill="none" />
+        <path d={leafR} fill={`url(#${uid}-leaf)`} />
+        <path d={leafL} fill={`url(#${uid}-leaf)`} />
+        {/* جوانه‌ی طلایی در نوک */}
+        <circle cx="12" cy="10.5" r="1.7" fill={`url(#${uid}-bud)`} />
       </svg>
     );
   }
 
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d={curve} />
-      <path d="M15.6 4h5v5" />
-      <circle cx="6.4" cy="17.1" r="0.9" fill={color} stroke="none" />
-      <circle cx="11.8" cy="11.4" r="1.15" fill={color} stroke="none" />
-      <circle cx="20.3" cy="4.4" r="1.5" fill={color} stroke="none" />
+      <path d={stem} fill="none" />
+      <path d={leafR} fill="none" />
+      <path d={leafL} fill="none" />
+      <circle cx="12" cy="10.4" r="1.2" fill={color} stroke="none" />
     </svg>
   );
 }

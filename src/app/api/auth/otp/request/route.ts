@@ -7,14 +7,49 @@ export const runtime = "nodejs";
 const RESEND_COOLDOWN_MS = 60 * 1000; // حداقل فاصلهٔ ارسال مجدد: ۶۰ ثانیه
 const CODE_TTL_MS = 2 * 60 * 1000; // اعتبار کد: ۲ دقیقه
 
+// خط پیامکی تبلیغاتی است؛ ارسال فقط از ۸ صبح تا ۱۰ شب مجاز است.
+const OTP_OPEN_HOUR = 8; // شروع بازهٔ مجاز (شامل)
+const OTP_CLOSE_HOUR = 22; // پایان بازهٔ مجاز (غیرشامل)
+
+/** آیا ساعت فعلی به وقت تهران در بازهٔ مجاز ارسال کد است؟ */
+function isWithinOtpWindow(): boolean {
+  const hourStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tehran",
+    hour: "2-digit",
+    hour12: false,
+  }).format(new Date());
+  // "24" را برای نیمه‌شب به ۰ نگاشت می‌کنیم.
+  const hour = Number(hourStr) % 24;
+  return hour >= OTP_OPEN_HOUR && hour < OTP_CLOSE_HOUR;
+}
+
 export async function POST(req: Request) {
   const { phone } = await req.json().catch(() => ({}));
-  const normalized = normalizePhone(String(phone || ""));
+  const rawPhone = String(phone || "").trim();
+
+  // اکانت تست — قبل از validation، بدون ارسال پیامک
+  const testPhone = process.env.TEST_PHONE;
+  if (testPhone && rawPhone === testPhone) {
+    return NextResponse.json({ ok: true, ttl: CODE_TTL_MS / 1000 });
+  }
+
+  const normalized = normalizePhone(rawPhone);
 
   if (!normalized) {
     return NextResponse.json(
       { error: "شمارهٔ موبایل معتبر نیست." },
       { status: 400 }
+    );
+  }
+
+  // گیت زمانی — خارج از بازهٔ مجاز، کد ارسال نمی‌شود.
+  if (!isWithinOtpWindow()) {
+    return NextResponse.json(
+      {
+        error: "دریافت کد فقط از ۸ صبح تا ۱۰ شب ممکن است. اگر رمز داری با رمز وارد شو، وگرنه صبح برگرد.",
+        code: "otp_closed",
+      },
+      { status: 403 }
     );
   }
 
@@ -36,12 +71,6 @@ export async function POST(req: Request) {
         { status: 429 }
       );
     }
-  }
-
-  // اکانت تست — بدون ارسال پیامک
-  const testPhone = process.env.TEST_PHONE;
-  if (testPhone && normalized === testPhone) {
-    return NextResponse.json({ ok: true, ttl: CODE_TTL_MS / 1000 });
   }
 
   const code = generateOtp(5);

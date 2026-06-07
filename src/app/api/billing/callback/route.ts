@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { addCredits } from "@/lib/billing";
-import { verifyPayment } from "@/lib/zarinpal";
+import { verifyPayment } from "@/lib/zibal";
 
 export const runtime = "nodejs";
 
@@ -12,8 +12,8 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const origin = (process.env.NEXT_PUBLIC_BASE_URL || `${url.protocol}//${url.host}`).replace(/\/$/, "");
-  const authority = url.searchParams.get("Authority") || "";
-  const status = url.searchParams.get("Status") || "";
+  const authority = url.searchParams.get("trackId") || "";
+  const success = url.searchParams.get("success") || "";
 
   const fail = (reason: string) =>
     NextResponse.redirect(`${origin}/wallet?status=failed&reason=${encodeURIComponent(reason)}`);
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${origin}/wallet?status=success&credits=${payment.credits}`);
   }
 
-  if (status !== "OK") {
+  if (success !== "1") {
     await db.from("payments").update({ status: "canceled" }).eq("id", payment.id);
     return fail("canceled");
   }
