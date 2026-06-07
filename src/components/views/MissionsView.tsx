@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend, ApiError } from "@/lib/client";
-import { fa, todayISO, jDateShort } from "@/lib/format";
+import { fa, todayISO, jDateShort, isoDay } from "@/lib/format";
 import type { Habit, HabitLog, Mission } from "@/lib/types";
 import type { MissionPlan } from "@/app/api/missions/generate/route";
 import { Card, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, useConfirm } from "@/components/ui";
@@ -42,7 +42,7 @@ export default function MissionsView() {
   }, [load]);
 
   const habitById = useMemo(() => new Map(habits.map((h) => [h.id, h])), [habits]);
-  const doneToday = useMemo(() => new Set(logs.filter((l) => l.done_on === today).map((l) => l.habit_id)), [logs, today]);
+  const doneToday = useMemo(() => new Set(logs.filter((l) => isoDay(l.done_on) === today).map((l) => l.habit_id)), [logs, today]);
 
   async function toggleMilestone(missionId: string, milestoneId: string, reached: boolean) {
     setMissions((ms) =>

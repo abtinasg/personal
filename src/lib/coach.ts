@@ -1,5 +1,5 @@
 import { getServiceClient } from "@/lib/supabase";
-import { todayISO, daysAgoISO } from "@/lib/format";
+import { todayISO, daysAgoISO, isoDay } from "@/lib/format";
 
 type DB = ReturnType<typeof getServiceClient>;
 
@@ -85,8 +85,8 @@ export async function userSnapshot(db: DB, uid: string): Promise<UserSnapshot> {
       voteTotal.set(idn, (voteTotal.get(idn) || 0) + 1);
       if (l.done_on >= weekAgo) voteWeek.set(idn, (voteWeek.get(idn) || 0) + 1);
     }
-    if (l.done_on === today) doneTodaySet.add(l.habit_id);
-    if (l.done_on === yesterday) doneYesterdaySet.add(l.habit_id);
+    if (isoDay(l.done_on) === today) doneTodaySet.add(l.habit_id);
+    if (isoDay(l.done_on) === yesterday) doneYesterdaySet.add(l.habit_id);
   }
 
   const identities = identitiesRaw.map((i) => ({

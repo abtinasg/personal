@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, todayISO, daysAgoISO } from "@/lib/format";
+import { fa, todayISO, daysAgoISO, isoDay } from "@/lib/format";
 import type { Habit, HabitLog, Identity } from "@/lib/types";
 import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, SectionTitle, IconChip, useConfirm } from "@/components/ui";
 import { AddButton } from "@/components/views/CaloriesView";
@@ -51,7 +51,7 @@ export default function HabitsView() {
     const set = doneSet.get(habit.id);
     const isDone = set?.has(today);
     if (isDone) {
-      setLogs((l) => l.filter((x) => !(x.habit_id === habit.id && x.done_on === today)));
+      setLogs((l) => l.filter((x) => !(x.habit_id === habit.id && isoDay(x.done_on) === today)));
     } else {
       setLogs((l) => [...l, { id: "tmp" + Math.random(), habit_id: habit.id, done_on: today, count: 1 }]);
     }

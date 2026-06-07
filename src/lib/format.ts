@@ -78,6 +78,11 @@ export function daysAgoISO(n: number): string {
   return todayISO(d);
 }
 
+/** فقط بخش تاریخ (YYYY-MM-DD) — DB ممکن است "2026-06-07T00:00:00.000Z" برگرداند. */
+export function isoDay(s: string): string {
+  return s.slice(0, 10);
+}
+
 const jalaliFull = new Intl.DateTimeFormat("fa-IR", {
   weekday: "long",
   day: "numeric",

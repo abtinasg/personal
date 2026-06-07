@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, money, todayISO, daysAgoISO, monthStart, monthKey, jWeekday } from "@/lib/format";
+import { fa, money, todayISO, daysAgoISO, monthStart, monthKey, jWeekday, isoDay } from "@/lib/format";
 import { type Habit, type HabitLog, type HealthMetric, type Identity, type Meal, type Mission, type Mood, type Profile, type Tab, type Transaction, identityLevel } from "@/lib/types";
 import { Card, SectionTitle, Spinner, StatTile } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
@@ -67,10 +67,10 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
   const waterGoal = profile?.water_goal_ml || 2000;
   const waterToday = data.metrics.filter((m) => m.kind === "water").reduce((s, m) => s + Number(m.value), 0);
 
-  const doneToday = new Set(data.logs.filter((l) => l.done_on === today).map((l) => l.habit_id));
+  const doneToday = new Set(data.logs.filter((l) => isoDay(l.done_on) === today).map((l) => l.habit_id));
   const habitsDone = data.habits.filter((h) => doneToday.has(h.id)).length;
 
-  const todayMood = data.moods.find((m) => m.recorded_on === today);
+  const todayMood = data.moods.find((m) => isoDay(m.recorded_on) === today);
   const currency = profile?.currency || "تومان";
 
   const activeMission = data.missions.find((m) => m.status === "active");
@@ -165,7 +165,7 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
         </div>
         {data.moods.length > 1 && (() => {
           const week = last7Moods(data.moods);
-          const scored = data.moods.filter((m) => week.some((w) => w.date === m.recorded_on));
+          const scored = data.moods.filter((m) => week.some((w) => w.date === isoDay(m.recorded_on)));
           const avg = scored.length ? scored.reduce((s, m) => s + m.score, 0) / scored.length : 0;
           const pct = Math.round((avg / 5) * 100);
           const label = pct >= 70 ? "هفته‌ی خوبیه" : pct >= 45 ? "هفته‌ی معمولیه" : "هفته‌ی سختیه";
@@ -244,7 +244,7 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
 }
 
 function upsertMood(moods: Mood[], date: string, score: number): Mood[] {
-  const i = moods.findIndex((m) => m.recorded_on === date);
+  const i = moods.findIndex((m) => isoDay(m.recorded_on) === date);
   if (i >= 0) {
     const copy = [...moods];
     copy[i] = { ...copy[i], score };

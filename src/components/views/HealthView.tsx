@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
-import { fa, parseNum, todayISO, daysAgoISO, jWeekday, jDateShort } from "@/lib/format";
+import { fa, parseNum, todayISO, daysAgoISO, jWeekday, jDateShort, isoDay } from "@/lib/format";
 import type { HealthMetric, Profile } from "@/lib/types";
 import { Card, Sheet, Field, Button, Spinner, SectionTitle, StatTile, IconChip, DarkActivityChart, BarChart } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
@@ -22,8 +22,9 @@ export default function HealthView({ profile }: { profile: Profile | null }) {
   useEffect(() => { load(); }, [load]);
 
   const waterGoal = profile?.water_goal_ml || 2000;
+
   const waterToday = useMemo(
-    () => metrics.filter((m) => m.kind === "water" && m.recorded_on === today).reduce((s, m) => s + Number(m.value), 0),
+    () => metrics.filter((m) => m.kind === "water" && isoDay(m.recorded_on) === today).reduce((s, m) => s + Number(m.value), 0),
     [metrics, today]
   );
 
@@ -31,8 +32,8 @@ export default function HealthView({ profile }: { profile: Profile | null }) {
   const lastWeight = weights[weights.length - 1];
   const prevWeight = weights[weights.length - 2];
   const weightDelta = lastWeight && prevWeight ? Number(lastWeight.value) - Number(prevWeight.value) : null;
-  const sleepToday = metrics.find((m) => m.kind === "sleep" && m.recorded_on === today);
-  const stepsToday = metrics.filter((m) => m.kind === "steps" && m.recorded_on === today).reduce((s, m) => s + Number(m.value), 0);
+  const sleepToday = metrics.find((m) => m.kind === "sleep" && isoDay(m.recorded_on) === today);
+  const stepsToday = metrics.filter((m) => m.kind === "steps" && isoDay(m.recorded_on) === today).reduce((s, m) => s + Number(m.value), 0);
   const stepsGoal = 10000;
 
   const weekSteps = useMemo(() => buildWeek(metrics, "steps"), [metrics]);
@@ -159,8 +160,8 @@ function buildWeek(metrics: HealthMetric[], kind: HealthMetric["kind"]): { l: st
   return Array.from({ length: 7 }, (_, i) => {
     const date = daysAgoISO(6 - i);
     const v = kind === "sleep"
-      ? Number(metrics.find((m) => m.kind === "sleep" && m.recorded_on === date)?.value ?? 0)
-      : metrics.filter((m) => m.kind === kind && m.recorded_on === date).reduce((s, m) => s + Number(m.value), 0);
+      ? Number(metrics.find((m) => m.kind === "sleep" && m.recorded_on.slice(0, 10) === date)?.value ?? 0)
+      : metrics.filter((m) => m.kind === kind && m.recorded_on.slice(0, 10) === date).reduce((s, m) => s + Number(m.value), 0);
     return { l: jWeekday(date), v };
   });
 }
