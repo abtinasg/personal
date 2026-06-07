@@ -42,11 +42,17 @@ export default function WalletView() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ kind: "success" | "failed"; text: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const d = await apiGet<WalletData>("/api/billing/wallet");
-    setData(d);
-    setLoading(false);
+    try {
+      const d = await apiGet<WalletData>("/api/billing/wallet");
+      setData(d);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "خطا در دریافتِ اطلاعاتِ کیف پول.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -74,6 +80,8 @@ export default function WalletView() {
       setBuying(null);
     }
   }
+
+  if (error) return <div className="p-6 text-center text-ios-red">{error}</div>;
 
   if (loading || !data) {
     return (

@@ -528,9 +528,10 @@ export default function LoginPage() {
             </PillButton>
 
             <button
-              className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60"
+              className="w-full h-12 rounded-full border border-[var(--secondary)]/30 text-[var(--label)] text-[15px] font-semibold flex items-center justify-center gap-2 mt-3 active:scale-[0.97] transition bg-[var(--bg)]"
               onClick={() => { setErr(""); setScreen("credentials"); }}
             >
+              <KeyRound size={16} />
               ورود مدیر
             </button>
           </>

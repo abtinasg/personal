@@ -86,17 +86,19 @@ const jalaliFull = new Intl.DateTimeFormat("fa-IR", {
 const jalaliShort = new Intl.DateTimeFormat("fa-IR", { day: "numeric", month: "long" });
 const jalaliWeekday = new Intl.DateTimeFormat("fa-IR", { weekday: "short" });
 
+function toDate(iso: string | Date): Date {
+  if (typeof iso !== "string") return iso;
+  return new Date(iso.includes("T") ? iso : iso + "T00:00:00");
+}
+
 export function jDate(iso: string | Date): string {
-  const d = typeof iso === "string" ? new Date(iso + "T00:00:00") : iso;
-  return jalaliFull.format(d);
+  return jalaliFull.format(toDate(iso));
 }
 export function jDateShort(iso: string | Date): string {
-  const d = typeof iso === "string" ? new Date(iso + "T00:00:00") : iso;
-  return jalaliShort.format(d);
+  return jalaliShort.format(toDate(iso));
 }
 export function jWeekday(iso: string | Date): string {
-  const d = typeof iso === "string" ? new Date(iso + "T00:00:00") : iso;
-  return jalaliWeekday.format(d);
+  return jalaliWeekday.format(toDate(iso));
 }
 
 /** YYYY-MM ماهِ جاری. */
