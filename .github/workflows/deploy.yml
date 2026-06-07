@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Login to Arvan Registry
-        run: echo "${{ secrets.ARVAN_REGISTRY_PASSWORD }}" | docker login registry.arvan.ir -u "${{ secrets.ARVAN_REGISTRY_USER }}" --password-stdin
+        run: echo "${{ secrets.ARVAN_REGISTRY_PASSWORD }}" | docker login ${{ secrets.ARVAN_REGISTRY_URL }} -u "${{ secrets.ARVAN_REGISTRY_USER }}" --password-stdin
 
       - name: Build image
         run: |
@@ -20,11 +20,11 @@ jobs:
             --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
             --build-arg NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" \
             --build-arg NEXT_PUBLIC_APP_NAME="${{ secrets.NEXT_PUBLIC_APP_NAME }}" \
-            -t registry.arvan.ir/${{ secrets.ARVAN_NAMESPACE }}/zendegi:latest \
-            -t registry.arvan.ir/${{ secrets.ARVAN_NAMESPACE }}/zendegi:${{ github.sha }} \
+            -t ${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:latest \
+            -t ${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:${{ github.sha }} \
             .
 
       - name: Push image
         run: |
-          docker push registry.arvan.ir/${{ secrets.ARVAN_NAMESPACE }}/zendegi:latest
-          docker push registry.arvan.ir/${{ secrets.ARVAN_NAMESPACE }}/zendegi:${{ github.sha }}
+          docker push ${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:latest
+          docker push ${{ secrets.ARVAN_REGISTRY_URL }}/zendegi:${{ github.sha }}
