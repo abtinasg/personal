@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     expires_at: new Date(now.getTime() + CODE_TTL_MS).toISOString(),
     attempts: 0,
     last_sent_at: now.toISOString(),
-  });
+  }, { onConflict: "phone" });
 
   if (upErr) {
     return NextResponse.json(

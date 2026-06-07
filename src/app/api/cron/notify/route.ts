@@ -79,7 +79,7 @@ async function handle(req: Request) {
   const { data: users } = userIds.length
     ? await db.from("users").select("id, display_name").in("id", userIds)
     : { data: [] as { id: string; display_name: string | null }[] };
-  const nameOf = new Map((users ?? []).map((u) => [u.id as string, (u.display_name as string | null) ?? null]));
+  const nameOf = new Map<string, string | null>((users ?? []).map((u: any) => [u.id as string, (u.display_name as string | null) ?? null]));
 
   let sent = 0;
   let removed = 0;
