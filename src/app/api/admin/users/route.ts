@@ -1,4 +1,5 @@
 import { adminAuthed, ok, bad } from "@/lib/api";
+import { logAudit, clientIp } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,7 @@ export async function GET() {
 
   const { data: users, error } = await a.db
     .from("users")
-    .select("id, username, phone, display_name, created_at")
+    .select("id, username, phone, display_name, role, created_at")
     .order("created_at", { ascending: false });
   if (error) return bad(error.message, 500);
 
@@ -28,7 +29,7 @@ export async function GET() {
 
 /** DELETE ?id= : حذف کاربر (cascade دیتا و پسکی‌ها). ادمین نمی‌تواند خودش را حذف کند. */
 export async function DELETE(req: Request) {
-  const a = await adminAuthed();
+  const a = await adminAuthed("manage_users");
   if ("error" in a) return a.error;
 
   const id = new URL(req.url).searchParams.get("id");
@@ -37,5 +38,12 @@ export async function DELETE(req: Request) {
 
   const { error } = await a.db.from("users").delete().eq("id", id);
   if (error) return bad(error.message, 500);
+  await logAudit(a.db, {
+    actor: a.username,
+    action: "delete_user",
+    targetTable: "users",
+    targetId: id,
+    ip: clientIp(req),
+  });
   return ok();
 }

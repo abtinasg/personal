@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiSend } from "@/lib/client";
@@ -20,30 +21,23 @@ type Screen = "splash" | "onboarding" | "phone" | "code" | "credentials" | "pass
 const SLIDES: { icon: string; title: string; desc: string; tint: string; accent: string; mascot?: boolean }[] = [
   {
     icon: "chart",
-    title: "هدف‌هات رو می‌دونی",
-    desc: "کاری که سخته، انجام‌دادنشه. جوانه هر روز کنارته تا از «می‌دونم» برسی به «انجامش دادم».",
+    title: "از فردا، نه. از همین امروز.",
+    desc: "جوانه کنارته تا از «می‌دونم باید» برسی به «انجامش دادم».",
     tint: "var(--t-sage)",
     accent: "var(--sage)",
     mascot: true,
   },
   {
     icon: "rocket",
-    title: "بزرگ رو کوچیک می‌کنیم",
-    desc: "هدفِ بزرگت رو بگو؛ جوانه همون لحظه می‌شکنتش به چند قدمِ کوچیکِ امروز. اون‌قدر کوچیک که نشه نه گفت.",
+    title: "هدفت رو بگو، می‌شکنمش.",
+    desc: "بزرگ‌ترین هدفت رو می‌گیرم و خُردش می‌کنم به قدم‌های امروز — اون‌قدر کوچیک که نشه نه گفت.",
     tint: "var(--t-blue)",
     accent: "var(--blue)",
   },
   {
-    icon: "flame",
-    title: "حواسش به همه‌چیز هست",
-    desc: "کالری، آب، خرج و تمرین — جوانه پیگیرِ همه‌شونه، بی‌شلوغی و آروم. تو فقط زندگی کن.",
-    tint: "var(--t-peach)",
-    accent: "var(--peach)",
-  },
-  {
     icon: "compass",
-    title: "تنهات نمی‌ذاره",
-    desc: "صبح یادت می‌ندازه، شب باهات مرور می‌کنه. شروع ساده‌ست — همین حالا یه هدف بهش بگو.",
+    title: "صبح یادآور، شب مرور.",
+    desc: "کالری، آب، خرج، تمرین — همه یک‌جا، بی‌شلوغی. تو فقط زندگی کن.",
     tint: "var(--t-lav)",
     accent: "var(--lav)",
   },
@@ -51,7 +45,7 @@ const SLIDES: { icon: string; title: string; desc: string; tint: string; accent:
 
 export default function LoginPage() {
   const router = useRouter();
-  const [screen, setScreen] = useState<Screen>("splash");
+  const [screen, setScreen] = useState<Screen>("onboarding");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [username, setUsername] = useState("");
@@ -62,8 +56,10 @@ export default function LoginPage() {
   const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
-    // همیشه از splash شروع کن؛ کاربر با فلش پایین جلو می‌رود.
-    setScreen("splash");
+    // مستقیم به اسلایدهای معرفی؛ اگر قبلاً دیده، به صفحهٔ شماره.
+    let onboarded = false;
+    try { onboarded = localStorage.getItem(ONBOARD_KEY) === "1"; } catch { /* noop */ }
+    setScreen(onboarded ? "phone" : "onboarding");
   }, []);
 
   // شمارش معکوسِ ارسال مجدد کد
@@ -448,6 +444,9 @@ export default function LoginPage() {
           >
             فعلاً نه، بعداً تنظیم می‌کنم
           </button>
+          <p className="text-center text-[11px] text-[var(--secondary)]/70 mt-1.5">
+            بدون رمز، دفعهٔ بعد باید دوباره پیامک صبر کنی.
+          </p>
         </div>
       </div>
     );
@@ -477,7 +476,7 @@ export default function LoginPage() {
           >
             <ChevronRight />
           </button>
-          <span className="text-[var(--secondary)] text-[14px] font-medium">نیاز به کمک داری؟</span>
+          <span className="w-9" />
         </div>
 
         {/* آدمکِ جوانه در بخش پاستلی */}
@@ -507,14 +506,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* خط جدا‌کننده */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px bg-[var(--secondary)]/20" />
-          <span className="text-[12px] text-[var(--secondary)]">
-            {isCode ? "کد ۵ رقمیِ پیامک‌شده" : "یک کد یک‌بارمصرف برایت می‌فرستیم"}
-          </span>
-          <div className="flex-1 h-px bg-[var(--secondary)]/20" />
-        </div>
+        {isCode && (
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 h-px bg-[var(--secondary)]/20" />
+            <span className="text-[12px] text-[var(--secondary)]">کد ۵ رقمیِ پیامک‌شده</span>
+            <div className="flex-1 h-px bg-[var(--secondary)]/20" />
+          </div>
+        )}
 
         {!isCode ? (
           /* ----- مرحلهٔ شماره ----- */
@@ -542,6 +540,12 @@ export default function LoginPage() {
               <Phone size={18} />
               ادامه
             </PillButton>
+
+            <p className="text-center text-[12px] leading-5 text-[var(--secondary)] mt-4">
+              با ادامه، {" "}
+              <Link href="/legal" className="text-ios-blue font-medium">قوانین و حریم خصوصی</Link>{" "}
+              رو می‌پذیری.
+            </p>
 
           </>
         ) : (

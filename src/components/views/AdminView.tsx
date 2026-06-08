@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ADMIN_TABLES, type AdminTable } from "@/lib/adminTables";
-import { Card, SectionTitle, Button, Segmented, Spinner, EmptyState } from "@/components/ui";
+import { Card, SectionTitle, Segmented, Spinner, EmptyState } from "@/components/ui";
 import { useConfirm } from "@/components/ui";
+import { ROLE_FA, ASSIGNABLE_ROLES, type Capability, type Role } from "@/lib/roles";
+import AdminDashboardView from "@/components/views/AdminDashboardView";
+import AdminControlsView from "@/components/views/AdminControlsView";
+import AdminTicketsView from "@/components/views/AdminTicketsView";
 
 const TABLE_LABELS: Record<string, string> = {
   users: "کاربران",
@@ -25,18 +29,58 @@ const TABLE_LABELS: Record<string, string> = {
   purchase_goals: "اهداف خرید",
 };
 
-type Tab = "stats" | "tables" | "users";
+type Tab = "dashboard" | "tickets" | "controls" | "stats" | "tables" | "users";
+
+/** هر تب چه مجوزی لازم دارد (کمترین‌دسترسی). */
+const TAB_CAP: Record<Tab, Capability> = {
+  dashboard: "view_admin",
+  tickets: "handle_tickets",
+  controls: "manage_flags",
+  stats: "view_admin",
+  tables: "view_admin",
+  users: "view_admin",
+};
+
+const TAB_LABEL: Record<Tab, string> = {
+  dashboard: "داشبورد",
+  tickets: "تیکت‌ها",
+  controls: "کنترل",
+  stats: "آمار",
+  tables: "جدول‌ها",
+  users: "کاربران",
+};
+
+type Me = { role: Role; roleLabel: string; capabilities: Capability[] };
 
 export default function AdminView() {
-  const [tab, setTab] = useState<Tab>("stats");
+  const [me, setMe] = useState<Me | null>(null);
+  const [tab, setTab] = useState<Tab>("dashboard");
+
+  useEffect(() => {
+    fetch("/api/admin/me")
+      .then((r) => r.json())
+      .then((d) => setMe(d?.capabilities ? d : { role: "support", roleLabel: "پشتیبان", capabilities: ["view_admin"] }))
+      .catch(() => setMe({ role: "support", roleLabel: "پشتیبان", capabilities: ["view_admin"] }));
+  }, []);
+
+  if (!me) return <Spinner className="mt-10 block mx-auto" />;
+
+  const caps = new Set(me.capabilities);
+  const tabs = (Object.keys(TAB_CAP) as Tab[]).filter((t) => caps.has(TAB_CAP[t]));
+  // اگر تبِ فعلی برای این نقش مجاز نیست، به اولین تبِ مجاز برگرد.
+  const activeTab = tabs.includes(tab) ? tab : tabs[0];
 
   return (
     <div className="px-4 pb-28 pt-2">
       <SectionTitle
         action={
-          <a href="/api/admin/export" className="ios-btn-ghost text-[14px]">
-            خروجی بک‌آپ
-          </a>
+          caps.has("export_data") ? (
+            <a href="/api/admin/export" className="ios-btn-ghost text-[14px]">
+              خروجی بک‌آپ
+            </a>
+          ) : (
+            <span className="secondary text-[13px]">{me.roleLabel}</span>
+          )
         }
       >
         پنل مدیریت
@@ -44,19 +88,20 @@ export default function AdminView() {
 
       <div className="mb-4">
         <Segmented<Tab>
-          value={tab}
+          value={activeTab}
           onChange={setTab}
-          options={[
-            { value: "stats", label: "آمار" },
-            { value: "tables", label: "جدول‌ها" },
-            { value: "users", label: "کاربران" },
-          ]}
+          options={tabs.map((t) => ({ value: t, label: TAB_LABEL[t] }))}
         />
       </div>
 
-      {tab === "stats" && <StatsTab />}
-      {tab === "tables" && <TablesTab />}
-      {tab === "users" && <UsersTab />}
+      {activeTab === "dashboard" && <AdminDashboardView />}
+      {activeTab === "tickets" && <AdminTicketsView />}
+      {activeTab === "controls" && <AdminControlsView />}
+      {activeTab === "stats" && <StatsTab />}
+      {activeTab === "tables" && <TablesTab canDelete={caps.has("manage_data")} />}
+      {activeTab === "users" && (
+        <UsersTab canDelete={caps.has("manage_users")} canManageRoles={caps.has("manage_roles")} />
+      )}
     </div>
   );
 }
@@ -89,7 +134,7 @@ function StatsTab() {
 
 /* ---------------- جدول‌ها ---------------- */
 
-function TablesTab() {
+function TablesTab({ canDelete }: { canDelete: boolean }) {
   const [table, setTable] = useState<AdminTable>("transactions");
   const [rows, setRows] = useState<Record<string, unknown>[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -151,7 +196,7 @@ function TablesTab() {
                   <pre className="min-w-0 flex-1 overflow-x-auto text-left text-[11px] leading-5 secondary" dir="ltr">
                     {JSON.stringify(row, null, 2)}
                   </pre>
-                  {row.id != null && (
+                  {canDelete && row.id != null && (
                     <button
                       onClick={() => del(String(row.id))}
                       className="shrink-0 text-[13px] font-semibold text-[var(--danger,#ff453a)]"
@@ -175,12 +220,14 @@ type AdminUser = {
   id: string;
   username: string;
   display_name: string | null;
+  role: Role;
   created_at: string;
   passkeys: number;
 };
 
-function UsersTab() {
+function UsersTab({ canDelete, canManageRoles }: { canDelete: boolean; canManageRoles: boolean }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
 
   const load = useCallback(() => {
@@ -194,6 +241,23 @@ function UsersTab() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const setRole = async (u: AdminUser, role: Role) => {
+    if (role === u.role) return;
+    setSavingId(u.id);
+    try {
+      const r = await fetch("/api/admin/roles", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId: u.id, role }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (d?.error) alert(d.error);
+      load();
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const del = async (u: AdminUser) => {
     const okToDel = await confirm({
@@ -212,21 +276,54 @@ function UsersTab() {
   return (
     <div className="space-y-2">
       {dialog}
+      {canManageRoles && (
+        <div className="secondary mb-1 px-1 text-[12px]">
+          نقشِ هر عضو را عوض کن. مالک = همه‌چیز · مدیر = داده و کلیدها · پشتیبان = فقط خواندن و تیکت.
+        </div>
+      )}
       {users.length === 0 && <EmptyState icon="inbox" title="کاربری نیست" />}
       {users.map((u) => (
         <Card key={u.id} className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="truncate font-semibold">{u.display_name || u.username}</div>
+            <div className="truncate font-semibold">
+              {u.display_name || u.username}
+              {u.role !== "user" && (
+                <span
+                  className="ms-2 rounded-full px-2 py-0.5 text-[11px] font-bold"
+                  style={{ background: "var(--blue,#0a84ff)", color: "#fff" }}
+                >
+                  {ROLE_FA[u.role]}
+                </span>
+              )}
+            </div>
             <div className="secondary text-[13px]">
               @{u.username} · {u.passkeys} پسکی
             </div>
           </div>
-          <button
-            onClick={() => del(u)}
-            className="shrink-0 text-[13px] font-semibold text-[var(--danger,#ff453a)]"
-          >
-            حذف
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {canManageRoles && (
+              <select
+                value={u.role}
+                disabled={savingId === u.id}
+                onChange={(e) => setRole(u, e.target.value as Role)}
+                className="ios-input !py-1 text-[13px]"
+              >
+                {ASSIGNABLE_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_FA[r]}
+                  </option>
+                ))}
+              </select>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => del(u)}
+                className="text-[13px] font-semibold text-[var(--danger,#ff453a)]"
+              >
+                حذف
+              </button>
+            )}
+          </div>
         </Card>
       ))}
     </div>

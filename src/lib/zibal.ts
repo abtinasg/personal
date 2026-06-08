@@ -63,11 +63,15 @@ export async function requestPayment(opts: {
 /**
  * تاییدِ پرداخت بعد از بازگشتِ کاربر.
  * result=100 یعنی موفق، result=201 یعنی قبلاً تایید شده.
+ *
+ * مبلغِ بازگشتی از زیبال (به ریال) را با مبلغِ موردِانتظار مقایسه می‌کنیم؛
+ * اگر نخواند، پرداخت را نامعتبر می‌شماریم تا کسی نتواند با دست‌کاریِ مبلغ،
+ * با پرداختِ کم‌تر اشتراک/اعتبار بگیرد.
  */
 export async function verifyPayment(opts: {
   authority: string; // همان trackId
-  amount: number; // تومان (برای سازگاری — زیبال نیازی به آن ندارد)
-}): Promise<{ ok: boolean; refId: string | null; alreadyVerified: boolean }> {
+  amount: number; // تومان موردِانتظار (برای مقایسه با مبلغِ واقعیِ زیبال)
+}): Promise<{ ok: boolean; refId: string | null; alreadyVerified: boolean; amountMismatch: boolean }> {
   const res = await fetch(`${BASE}/v1/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -79,9 +83,17 @@ export async function verifyPayment(opts: {
   const json = await res.json().catch(() => null);
   const result = json?.result as number | undefined;
   const refId = json?.refNumber != null ? String(json.refNumber) : null;
+  const verified = result === 100 || result === 201;
+
+  // زیبال مبلغ را به ریال برمی‌گرداند؛ موردِانتظارِ ما تومان است.
+  const expectedRial = opts.amount * 10;
+  const paidRial = typeof json?.amount === "number" ? json.amount : null;
+  const amountMismatch = verified && paidRial != null && paidRial !== expectedRial;
+
   return {
-    ok: result === 100 || result === 201,
+    ok: verified && !amountMismatch,
     refId,
     alreadyVerified: result === 201,
+    amountMismatch,
   };
 }

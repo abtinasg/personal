@@ -9,10 +9,21 @@ import {
   isHeavy,
   getActiveSubscription,
 } from "@/lib/billing";
+import { isEnabled } from "@/lib/flags";
 
 type DB = ReturnType<typeof getServiceClient>;
 
 const PLAN_OK = -1; // اعتبار = -1 یعنی «از طریقِ اشتراک، بدونِ کسرِ اعتبار»
+
+/**
+ * سقفِ سختِ مصرفِ هوش مصنوعی برای کلِ اپ در ۲۴ ساعت (قطع‌کننده‌ی هزینه).
+ * بدونِ این، یک سوءاستفاده (مثلاً ساختِ انبوهِ کاربرِ مهمان) می‌تواند صورتحسابِ
+ * OpenRouter را بی‌نهایت بالا ببرد. با env قابلِ تنظیم؛ مقدارِ ۰ یا منفی = غیرفعال.
+ */
+function globalDailyCap(): number {
+  const n = Number(process.env.AI_GLOBAL_DAILY_CAP);
+  return Number.isFinite(n) ? n : 5000;
+}
 
 /**
  * نگهبانِ هوش مصنوعی: هر مسیرِ AI بلافاصله بعد از authed() این را صدا می‌زند.
@@ -29,6 +40,38 @@ export async function guardAI(
 ): Promise<{ ok: true; credits: number } | { error: NextResponse }> {
   const now = Date.now();
 
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  // (−۱) کلیدِ قطعِ دستی/خودکار — فلگِ ai_enabled (و maintenance_mode).
+  // پایشِ هزینه وقتی بودجه پر شود همین فلگ را می‌اندازد؛ ادمین هم می‌تواند دستی
+  // قطع کند. کش‌شده است (~۳۰ث) تا روی هر فراخوانی یک کوئریِ اضافه نزند.
+  if (!(await isEnabled(db, "ai_enabled"))) {
+    return {
+      error: NextResponse.json(
+        { error: "هوش مصنوعیِ جوانه موقتاً غیرفعاله؛ کمی بعد دوباره امتحان کن. 🌱", code: "AI_DISABLED" },
+        { status: 503 }
+      ),
+    };
+  }
+
+  // (۰) قطع‌کننده‌ی هزینه — سقفِ سختِ مصرفِ کلِ اپ در روز
+  const cap = globalDailyCap();
+  if (cap > 0) {
+    const { count: globalToday } = await db
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfDay.toISOString());
+    if ((globalToday ?? 0) >= cap) {
+      return {
+        error: NextResponse.json(
+          { error: "جوانه الان خیلی شلوغه؛ کمی بعد دوباره امتحان کن. 🌱", code: "GLOBAL_LIMIT" },
+          { status: 503 }
+        ),
+      };
+    }
+  }
+
   // (۱) محافظت — سقفِ سختِ دقیقه‌ای
   const minuteAgo = new Date(now - 60_000).toISOString();
   const { count: lastMinute } = await db
@@ -44,9 +87,6 @@ export async function guardAI(
       ),
     };
   }
-
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
 
   // (۲) اشتراکِ فعال
   const sub = await getActiveSubscription(db, uid);

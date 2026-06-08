@@ -344,6 +344,15 @@ export class PgClient {
     return new QueryBuilder(this._sql, table);
   }
 
+  /**
+   * کوئریِ خام و پارامتری برای تجمیع‌هایی که query-builder پوشش نمی‌دهد
+   * (GROUP BY، SUM، FILTER، JOIN، ویوها). فقط سمتِ سرور و با SQLِ کنترل‌شده
+   * در کد استفاده شود — هرگز با ورودیِ کاربر concat نکن؛ پارامترها را $1,$2,... بفرست.
+   */
+  async query<T = Row>(text: string, params: unknown[] = []): Promise<T[]> {
+    return (await this._sql.unsafe(text, params as any[])) as T[];
+  }
+
   async rpc(name: string, params: Record<string, unknown>): Promise<SbResult> {
     try {
       const vals = Object.values(params);
@@ -365,12 +374,17 @@ export class PgClient {
 // ── factory ───────────────────────────────────────────────────────────────────
 
 export function createPgClient(url: string): PgClient {
-  const useSSL = !url.includes("sslmode=disable");
+  // Arvan DBaaS (و خیلی از DBaaSهای داخلی) TLS را قبول نمی‌کنند و هنگامِ probeِ
+  // SSL سوکت را می‌بندند. حالتِ "prefer" باعثِ یک handshakeِ ناموفق در هر اتصالِ
+  // جدید می‌شود (~۸ برابر کندتر و زیرِ بار شکننده). پس پیش‌فرض را بدونِ SSL می‌گذاریم
+  // و فقط وقتی صریحاً sslmode=require در URL باشد SSL را روشن می‌کنیم.
+  const useSSL = /sslmode=require/.test(url);
   const sql = postgres(url, {
     max: 10,
-    idle_timeout: 30,
+    idle_timeout: 20,
+    max_lifetime: 60 * 30, // اتصال‌ها را هر ۳۰ دقیقه بازیافت کن تا اتصالِ بیاتِ بسته‌شده توسطِ سرور باقی نماند
     connect_timeout: 10,
-    ssl: useSSL ? "prefer" : false,
+    ssl: useSSL ? "require" : false,
   });
   return new PgClient(sql);
 }

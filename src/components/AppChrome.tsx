@@ -11,6 +11,7 @@ import { Sheet, Field, MoneyInput, Button, Spinner, Chevron } from "@/components
 import { AppProvider } from "@/components/AppContext";
 import QuickCapture from "@/components/QuickCapture";
 import Onboarding from "@/components/Onboarding";
+import HelpCenter from "@/components/HelpCenter";
 import { enablePush, disablePush, isPushEnabled, isPushSupported } from "@/lib/pushClient";
 
 /** تب‌های اصلی (مسیرهای واقعیِ روتر). دکمه‌ی وسط «ثبتِ سریع» است و مسیر ندارد. */
@@ -51,6 +52,7 @@ export default function AppChrome({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const loadProfile = useCallback(async () => {
@@ -179,6 +181,10 @@ export default function AppChrome({
           username={username}
           displayName={displayName}
           isAdmin={isAdmin}
+          onOpenHelp={() => {
+            setSettingsOpen(false);
+            setHelpOpen(true);
+          }}
           onSaved={loadProfile}
           onLogout={async () => {
             await apiSend("/api/auth/logout", "POST");
@@ -186,6 +192,8 @@ export default function AppChrome({
             router.refresh();
           }}
         />
+
+        <HelpCenter open={helpOpen} onClose={() => setHelpOpen(false)} />
       </div>
     </AppProvider>
   );
@@ -214,6 +222,7 @@ function SettingsSheet({
   username,
   displayName,
   isAdmin = false,
+  onOpenHelp,
   onSaved,
   onLogout,
 }: {
@@ -223,6 +232,7 @@ function SettingsSheet({
   username: string;
   displayName: string;
   isAdmin?: boolean;
+  onOpenHelp: () => void;
   onSaved: () => void;
   onLogout: () => void;
 }) {
@@ -298,6 +308,13 @@ function SettingsSheet({
       <Button onClick={save} disabled={saving} className="w-full mt-5 flex items-center justify-center gap-2">
         {saving && <Spinner />} ذخیره
       </Button>
+      <button
+        onClick={onOpenHelp}
+        className="mt-3 flex w-full items-center justify-between rounded-2xl bg-[var(--label)]/[0.05] px-4 py-3.5 text-[16px] font-semibold active:opacity-60"
+      >
+        <span>راهنما و پشتیبانی</span>
+        <Chevron dir="forward" size={20} className="secondary" />
+      </button>
       {isAdmin && (
         <a
           href="/admin"

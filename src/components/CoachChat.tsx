@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { apiSend, ApiError } from "@/lib/client";
 import { Sheet, Spinner } from "@/components/ui";
@@ -183,6 +184,11 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
             </svg>
           </button>
         </div>
+
+        <p className="shrink-0 text-center text-[11px] leading-5 text-[var(--secondary)] pt-1.5">
+          جوانه هوش مصنوعیه و ممکنه اشتباه کنه. با ثبت‌نام، {" "}
+          <Link href="/legal" className="text-ios-blue">قوانین و حریم خصوصی</Link> رو پذیرفتی.
+        </p>
       </div>
     </Sheet>
   );

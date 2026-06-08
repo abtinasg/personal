@@ -1,0 +1,7 @@
+# زمان‌بندیِ کرون — به وقتِ تهران (TZ=Asia/Tehran در ایمیج ست شده).
+# خروجی به /proc/1/fd/1 می‌رود تا در لاگِ کانتینرِ آروان دیده شود.
+#
+# دقیقه ساعت روز ماه روزِهفته  دستور
+0   8  * * *  /usr/local/bin/run-cron.sh notify     >> /proc/1/fd/1 2>&1
+*/15 *  * * *  /usr/local/bin/run-cron.sh reconcile  >> /proc/1/fd/1 2>&1
+*/10 *  * * *  /usr/local/bin/run-cron.sh cost-guard >> /proc/1/fd/1 2>&1

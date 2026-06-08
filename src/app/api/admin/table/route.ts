@@ -1,5 +1,6 @@
 import { adminAuthed, ok, bad } from "@/lib/api";
 import { isAdminTable, TABLE_ORDER_COLUMN } from "@/lib/adminTables";
+import { logAudit, clientIp } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
 
 /** PATCH {name, id, patch}: ویرایش یک ردیف. */
 export async function PATCH(req: Request) {
-  const a = await adminAuthed();
+  const a = await adminAuthed("manage_data");
   if ("error" in a) return a.error;
 
   const b = await req.json().catch(() => ({}));
@@ -44,12 +45,20 @@ export async function PATCH(req: Request) {
 
   const { data, error } = await a.db.from(name).update(patch).eq("id", id).select().single();
   if (error) return bad(error.message, 500);
+  await logAudit(a.db, {
+    actor: a.username,
+    action: "update_row",
+    targetTable: name,
+    targetId: String(id),
+    meta: { fields: Object.keys(patch) },
+    ip: clientIp(req),
+  });
   return ok({ row: data });
 }
 
 /** DELETE ?name=&id= : حذف یک ردیف. */
 export async function DELETE(req: Request) {
-  const a = await adminAuthed();
+  const a = await adminAuthed("manage_data");
   if ("error" in a) return a.error;
 
   const { searchParams } = new URL(req.url);
@@ -60,5 +69,12 @@ export async function DELETE(req: Request) {
 
   const { error } = await a.db.from(name).delete().eq("id", id);
   if (error) return bad(error.message, 500);
+  await logAudit(a.db, {
+    actor: a.username,
+    action: "delete_row",
+    targetTable: name,
+    targetId: id,
+    ip: clientIp(req),
+  });
   return ok();
 }

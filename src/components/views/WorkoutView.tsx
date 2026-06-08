@@ -56,6 +56,14 @@ const KIND_META: Record<WorkoutBlockKind, { label: string; icon: string; color: 
 
 const HERO_GRADIENT = "linear-gradient(135deg,#1f6ca6,#3aa6b8)";
 
+const GEN_MSGS = [
+  "دارم وضعیتت رو می‌خونم…",
+  "تمرین‌های هفته رو بررسی می‌کنم…",
+  "تمرین‌ها رو می‌چینم…",
+  "ست‌ها و تکرارها رو تنظیم می‌کنم…",
+  "آخرین تنظیم‌ها…",
+];
+
 export default function WorkoutView() {
   const [loading, setLoading] = useState(true);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -63,6 +71,7 @@ export default function WorkoutView() {
   const [hasBody, setHasBody] = useState(true);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [genMsg, setGenMsg] = useState("");
   const [err, setErr] = useState<unknown>(null);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -89,20 +98,43 @@ export default function WorkoutView() {
   const generate = useCallback(async () => {
     setErr(null);
     setGenerating(true);
+    setGenMsg(GEN_MSGS[0]);
     try {
-      const res = await apiSend<{ plan?: WorkoutPlan; needs?: string[] }>("/api/coach/workout", "POST");
+      const res = await apiSend<{ job_id?: string; needs?: string[] }>("/api/coach/workout", "POST");
+
       if (res.needs?.length) {
         setNeeds(res.needs);
         setEditOpen(true);
-      } else if (res.plan) {
-        setPlan(res.plan);
-        setNeeds([]);
+        return;
       }
+
+      if (!res.job_id) return;
+
+      const jobId = res.job_id;
+      for (let i = 0; i < 25; i++) {
+        await new Promise<void>((r) => setTimeout(r, 2000));
+        // پیام رو بر اساسِ زمانِ گذشته پیش ببر
+        setGenMsg(GEN_MSGS[Math.min(i + 1, GEN_MSGS.length - 1)]);
+        const poll = await apiGet<{ status: string; plan?: WorkoutPlan; error?: string }>(
+          `/api/coach/workout?job=${jobId}`
+        );
+        if (poll.status === "done") {
+          if (poll.plan) { setPlan(poll.plan); setNeeds([]); }
+          return;
+        }
+        if (poll.status === "error") {
+          throw new Error(poll.error || "ساختِ برنامه با خطا روبه‌رو شد.");
+        }
+      }
+
+      throw new Error("ساختِ برنامه بیش از حد طول کشید. دوباره تلاش کن.");
     } catch (e) {
-      setErr(e instanceof ApiError ? e : new Error("ساخت برنامه با خطا روبه‌رو شد."));
+      setErr(e instanceof ApiError ? e : new Error(e instanceof Error ? e.message : "ساخت برنامه با خطا روبه‌رو شد."));
     } finally {
       setGenerating(false);
+      setGenMsg("");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggleDone() {
@@ -157,7 +189,27 @@ export default function WorkoutView() {
           <AiError error={err} className="px-1" />
 
           {plan ? (
-            <PlanView plan={plan} onToggleDone={toggleDone} onRegenerate={generate} regenerating={generating} />
+            <PlanView plan={plan} onToggleDone={toggleDone} onRegenerate={generate} regenerating={generating} genMsg={genMsg} />
+          ) : generating ? (
+            <Card className="text-center py-10 px-5">
+              <div className="mx-auto mb-4 h-14 w-14 rounded-[20px] flex items-center justify-center text-white" style={{ backgroundImage: HERO_GRADIENT }}>
+                <Spinner className="!text-white !w-7 !h-7" />
+              </div>
+              <p className="font-bold text-[17px]">دارم برنامه‌ی امروزت رو می‌سازم</p>
+              <p className="secondary text-[14px] leading-7 mt-1 transition-all duration-500">{genMsg}</p>
+              <div className="flex justify-center gap-1.5 mt-5">
+                {[0,1,2,3,4].map((i) => (
+                  <span
+                    key={i}
+                    className="h-1.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: GEN_MSGS.indexOf(genMsg) >= i ? "24px" : "6px",
+                      background: GEN_MSGS.indexOf(genMsg) >= i ? "#3aa6b8" : "#3aa6b820",
+                    }}
+                  />
+                ))}
+              </div>
+            </Card>
           ) : (
             <Card className="text-center py-8 px-5">
               <div className="mx-auto mb-3 h-14 w-14 rounded-[20px] flex items-center justify-center text-white" style={{ backgroundImage: HERO_GRADIENT }}>
@@ -170,8 +222,8 @@ export default function WorkoutView() {
                   نکته: اگه وزن و قدت رو در بخشِ سلامتی ثبت کنی، برنامه دقیق‌تر می‌شه.
                 </p>
               )}
-              <Button onClick={generate} disabled={generating} className="w-full mt-5 flex items-center justify-center gap-2">
-                {generating ? <><Spinner /> در حال ساخت…</> : <><AppIcon name="sparkles" size={18} /> ساختِ برنامه‌ی امروز</>}
+              <Button onClick={generate} className="w-full mt-5 flex items-center justify-center gap-2">
+                <AppIcon name="sparkles" size={18} /> ساختِ برنامه‌ی امروز
               </Button>
             </Card>
           )}
@@ -197,11 +249,13 @@ function PlanView({
   onToggleDone,
   onRegenerate,
   regenerating,
+  genMsg,
 }: {
   plan: WorkoutPlan;
   onToggleDone: () => void;
   onRegenerate: () => void;
   regenerating: boolean;
+  genMsg: string;
 }) {
   return (
     <div className="space-y-3">
@@ -260,7 +314,9 @@ function PlanView({
         disabled={regenerating}
         className="w-full flex items-center justify-center gap-2"
       >
-        {regenerating ? <><Spinner /> در حال ساخت…</> : <><AppIcon name="repeat" size={18} /> ساختِ دوباره‌ی برنامه‌ی امروز</>}
+        {regenerating
+          ? <><Spinner /> {genMsg || "در حال ساخت…"}</>
+          : <><AppIcon name="repeat" size={18} /> ساختِ دوباره‌ی برنامه‌ی امروز</>}
       </Button>
     </div>
   );

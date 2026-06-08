@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { normalizePhone, hashOtp } from "@/lib/sms";
 import { createSession, getSession } from "@/lib/auth";
+import { logEvent } from "@/lib/events";
 
 export const runtime = "nodejs";
 
@@ -19,10 +20,17 @@ export async function POST(req: Request) {
     );
   }
 
-  // اکانت تست — بدون بررسی دیتابیس
+  // اکانت تست — بدون بررسی دیتابیس.
+  // فقط خارج از پروداکشن؛ در پروداکشن این مسیر کاملاً غیرفعال است (درِ پشتیِ کدِ ثابت بسته).
   const testPhone = process.env.TEST_PHONE;
   const testCode = process.env.TEST_OTP_CODE;
-  if (testPhone && testCode && normalized === testPhone && inputCode === testCode) {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    testPhone &&
+    testCode &&
+    normalized === testPhone &&
+    inputCode === testCode
+  ) {
     const db2 = getServiceClient();
     let { data: user } = await db2
       .from("users")
@@ -88,7 +96,9 @@ export async function POST(req: Request) {
     .eq("phone", normalized)
     .maybeSingle();
 
+  let isNewAccount = false;
   if (!user) {
+    isNewAccount = true;
     // اگر کاربرِ مهمان لاگین است و این شماره آزاد است، همین ردیف را ارتقا بده (claim)
     // تا همه‌ی داده‌هایی که به‌عنوان مهمان ساخته بود حفظ و «منتقل» شوند.
     let guestId: string | null = null;
@@ -133,6 +143,10 @@ export async function POST(req: Request) {
   }
 
   await createSession({ uid: user.id, username: user.username || normalized });
+
+  if (isNewAccount) {
+    await logEvent(db, "signup", { userId: user.id as string });
+  }
 
   return NextResponse.json({ ok: true, hasPassword: !!user.password_hash });
 }

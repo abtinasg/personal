@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
-import { addCredits, activateSubscription, planDays } from "@/lib/billing";
+import { settlePayment } from "@/lib/billing";
 import { verifyPayment } from "@/lib/zibal";
 
 export const runtime = "nodejs";
@@ -51,28 +51,13 @@ export async function GET(req: Request) {
   }
 
   if (!verified.ok) {
+    // مبلغِ ناهماهنگ هم همین‌جا fail می‌شود (دست‌کاریِ مبلغ).
     await db.from("payments").update({ status: "failed" }).eq("id", payment.id);
-    return fail("verify");
+    return fail(verified.amountMismatch ? "amount" : "verify");
   }
 
-  // علامت‌گذاریِ پرداخت به‌صورتِ شرطی تا در شرایطِ همزمانی دوبار شارژ نشود
-  const { data: claimed } = await db
-    .from("payments")
-    .update({ status: "paid", ref_id: verified.refId, paid_at: new Date().toISOString() })
-    .eq("id", payment.id)
-    .neq("status", "paid")
-    .select("id")
-    .maybeSingle();
-
-  if (claimed) {
-    if (payment.plan && payment.cycle) {
-      // پرداختِ پلن → اشتراک را فعال/تمدید کن (نه اعتبار)
-      await activateSubscription(db, payment.user_id, payment.plan, payment.cycle, planDays(payment.cycle));
-    } else {
-      // سازگاریِ عقب‌رو: بسته‌ی اعتباریِ قدیمی
-      await addCredits(db, payment.user_id, payment.credits, "purchase");
-    }
-  }
+  // نهایی‌سازیِ اتمیک و idempotent (مشترک با کرانِ تطبیق).
+  await settlePayment(db, payment, verified.refId);
 
   return NextResponse.redirect(successUrl);
 }

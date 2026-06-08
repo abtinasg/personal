@@ -1,6 +1,8 @@
 import { authed, bad, ok } from "@/lib/api";
 import { findPack, parsePackId } from "@/lib/billing";
 import { requestPayment } from "@/lib/zibal";
+import { logEvent } from "@/lib/events";
+import { isEnabled } from "@/lib/flags";
 
 export const runtime = "nodejs";
 
@@ -17,6 +19,11 @@ export async function POST(req: Request) {
   if ("error" in a) {
     console.error("Checkout auth failed");
     return a.error;
+  }
+
+  // کلیدِ قطعِ پرداخت (و maintenance_mode)
+  if (!(await isEnabled(a.db, "payments_enabled"))) {
+    return bad("پرداخت موقتاً غیرفعاله؛ کمی بعد دوباره امتحان کن.", 503);
   }
 
   const body = await req.json().catch(() => ({}));
@@ -52,6 +59,10 @@ export async function POST(req: Request) {
       callbackUrl: `${baseUrl(req)}/api/billing/callback`,
     });
     await a.db.from("payments").update({ authority }).eq("id", payment.id);
+    await logEvent(a.db, "checkout_start", {
+      userId: a.uid,
+      props: { packId: pack.id, amount: pack.toman, plan: parsed?.plan ?? null },
+    });
     return ok({ url: payUrl });
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : "اتصال به درگاهِ پرداخت ناموفق بود.";
