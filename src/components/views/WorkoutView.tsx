@@ -56,6 +56,14 @@ const KIND_META: Record<WorkoutBlockKind, { label: string; icon: string; color: 
 
 const HERO_GRADIENT = "linear-gradient(135deg,#1f6ca6,#3aa6b8)";
 
+const GEN_MSGS = [
+  "دارم وضعیتت رو می‌خونم…",
+  "تمرین‌های هفته رو بررسی می‌کنم…",
+  "تمرین‌ها رو می‌چینم…",
+  "ست‌ها و تکرارها رو تنظیم می‌کنم…",
+  "آخرین تنظیم‌ها…",
+];
+
 export default function WorkoutView() {
   const [loading, setLoading] = useState(true);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -86,14 +94,6 @@ export default function WorkoutView() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const GEN_MSGS = [
-    "دارم وضعیتت رو می‌خونم…",
-    "تمرین‌های هفته رو بررسی می‌کنم…",
-    "تمرین‌ها رو می‌چینم…",
-    "ست‌ها و تکرارها رو تنظیم می‌کنم…",
-    "آخرین تنظیم‌ها…",
-  ];
 
   const generate = useCallback(async () => {
     setErr(null);
@@ -314,7 +314,9 @@ function PlanView({
         disabled={regenerating}
         className="w-full flex items-center justify-center gap-2"
       >
-        {regenerating ? <><Spinner /> در حال ساخت…</> : <><AppIcon name="repeat" size={18} /> ساختِ دوباره‌ی برنامه‌ی امروز</>}
+        {regenerating
+          ? <><Spinner /> {genMsg || "در حال ساخت…"}</>
+          : <><AppIcon name="repeat" size={18} /> ساختِ دوباره‌ی برنامه‌ی امروز</>}
       </Button>
     </div>
   );
