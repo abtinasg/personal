@@ -18,28 +18,53 @@ function apiKey(): string {
   return key;
 }
 
+// برای مسیرهای همزمان (مثل چت) این timeout باید کمتر از timeout پراکسی Arvan باشد.
+// برای مسیرهای async (مثل تولید برنامه‌ی ورزشی) می‌توان مقدار بزرگ‌تری داد.
+// مقدار پیش‌فرض ۲۵ ثانیه است تا error handler ما قبل از پراکسی اجرا شود.
+const DEFAULT_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS) || 25_000;
+
 async function call(
   messages: AIMessage[],
-  opts: { json?: boolean; temperature?: number; maxTokens?: number; seed?: number } = {}
+  opts: {
+    json?: boolean;
+    temperature?: number;
+    maxTokens?: number;
+    seed?: number;
+    timeoutMs?: number;
+  } = {}
 ): Promise<string> {
-  const res = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey()}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:3000",
-      "X-Title": "Yek-Darsad",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
-      messages,
-      temperature: opts.temperature ?? 0.2,
-      max_tokens: opts.maxTokens ?? 800,
-      // seed باعث می‌شه ورودیِ یکسان خروجیِ پایدار بده (مثلاً تخمینِ کالریِ یک عکس هر بار یکی باشه).
-      ...(opts.seed != null ? { seed: opts.seed } : {}),
-      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey()}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+        "X-Title": "Yek-Darsad",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+        messages,
+        temperature: opts.temperature ?? 0.2,
+        max_tokens: opts.maxTokens ?? 800,
+        // seed باعث می‌شه ورودیِ یکسان خروجیِ پایدار بده (مثلاً تخمینِ کالریِ یک عکس هر بار یکی باشه).
+        ...(opts.seed != null ? { seed: opts.seed } : {}),
+        ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+      }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("هوش مصنوعی به‌موقع پاسخ نداد. لطفاً دوباره تلاش کن.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
@@ -57,7 +82,7 @@ async function call(
 /** یک پاسخ متنی آزاد از مدل می‌گیرد. */
 export async function aiText(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number; seed?: number }
+  opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number }
 ): Promise<string> {
   return call(messages, opts);
 }
@@ -65,7 +90,7 @@ export async function aiText(
 /** از مدل می‌خواهد فقط JSON بدهد و آن را parse می‌کند. */
 export async function aiJSON<T>(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number; seed?: number }
+  opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number }
 ): Promise<T> {
   const raw = await call(messages, { ...opts, json: true });
   return parseJSON<T>(raw);

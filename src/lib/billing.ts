@@ -1,4 +1,5 @@
 import type { getServiceClient } from "@/lib/supabase";
+import { logEvent } from "@/lib/events";
 
 type DB = ReturnType<typeof getServiceClient>;
 
@@ -184,4 +185,52 @@ export async function addCredits(db: DB, uid: string, amount: number, reason: st
   });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
+}
+
+/** ردیفِ پرداختِ موردِنیاز برای نهایی‌سازی. */
+export type SettleablePayment = {
+  id: string;
+  user_id: string;
+  amount: number;
+  credits: number;
+  plan: string | null;
+  cycle: string | null;
+};
+
+/**
+ * یک پرداختِ تاییدشده را به‌صورتِ اتمیک و idempotent نهایی می‌کند:
+ * وضعیت را به paid می‌برد (فقط اگر قبلاً paid نبوده) و سپس اشتراک را فعال/تمدید
+ * یا — برای بسته‌های اعتباریِ قدیمی — اعتبار را شارژ می‌کند.
+ * خروجی: آیا همین فراخوانی پرداخت را claim کرد (تا از فعال‌سازیِ دوباره در شرایطِ
+ * همزمانیِ callback و کرانِ تطبیق جلوگیری شود).
+ *
+ * هم callbackِ بازگشتِ مرورگر و هم کرانِ تطبیق (`/api/cron/reconcile`) از این
+ * استفاده می‌کنند، چون callback مرورگرمحور است و اگر کاربر بعد از پرداخت برنگردد
+ * اشتراکش هرگز فعال نمی‌شد.
+ */
+export async function settlePayment(
+  db: DB,
+  payment: SettleablePayment,
+  refId: string | null
+): Promise<boolean> {
+  const { data: claimed } = await db
+    .from("payments")
+    .update({ status: "paid", ref_id: refId, paid_at: new Date().toISOString() })
+    .eq("id", payment.id)
+    .neq("status", "paid")
+    .select("id")
+    .maybeSingle();
+
+  if (!claimed) return false;
+
+  if (payment.plan && payment.cycle) {
+    await activateSubscription(db, payment.user_id, payment.plan, payment.cycle, planDays(payment.cycle as BillingCycle));
+  } else {
+    await addCredits(db, payment.user_id, payment.credits, "purchase");
+  }
+  await logEvent(db, "payment_paid", {
+    userId: payment.user_id,
+    props: { amount: payment.amount, plan: payment.plan, cycle: payment.cycle },
+  });
+  return true;
 }

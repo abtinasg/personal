@@ -52,15 +52,20 @@ pnpm dev         # http://localhost:3000
 
 روی `localhost` پسکی روی همان مرورگر کار می‌کند (Chrome/Safari جدید).
 
-## ۴) دیپلوی روی Vercel
+## ۴) دیپلوی روی ArvanCloud Container Service
 
-1. پروژه را روی GitHub بگذار و در [vercel.com](https://vercel.com) ایمپورت کن.
-2. در **Settings → Environment Variables** همان چهار متغیر بالا را اضافه کن.
-3. Deploy.
+اپ روی **سرویسِ Container** ابرِ آروان دیپلوی می‌شود (نه Vercel). Dockerfile در ریشه‌ی
+پروژه آماده است (`output: "standalone"` در `next.config.mjs`).
 
-پسکی به‌صورت خودکار با دامنه‌ی Vercel (مثل `your-app.vercel.app`) کار می‌کند، چون
-`rpID` و `origin` از روی هدر درخواست تشخیص داده می‌شوند. اگر دامنه‌ی اختصاصی اضافه کردی،
-پسکی‌هایی که قبلاً روی دامنه‌ی قدیمی ساخته شده‌اند روی دامنه‌ی جدید کار نمی‌کنند (محدودیت امنیتی WebAuthn).
+1. ایمیج را build کن (CI یا دستی) و به registry آروان push کن.
+2. در پنل آروان، یک سرویسِ Container بساز و ایمیج را وصل کن.
+3. متغیرهای محیطی را در پنل ست کن (به `docs/arvan-cron.md` نگاه کن — لیست کامل آنجاست).
+4. برای کرون‌ها از Scheduled Jobs یا یک سرویسِ کرونِ بیرونی استفاده کن
+   (به `docs/arvan-cron.md` مراجعه کن).
+5. مانیتورینگ: `/api/healthz` را به UptimeRobot وصل کن.
+
+> دیتابیس روی **Arvan DBaaS** اجرا می‌شود و TLS را قبول نمی‌کند —
+> در `DATABASE_URL` پارامترِ `sslmode=require` نگذار.
 
 ---
 
