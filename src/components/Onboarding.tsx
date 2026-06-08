@@ -21,10 +21,10 @@ const ACTIVITY_OPTS = [
 ] as const;
 
 function bmiInfo(bmi: number): { label: string; color: string } {
-  if (bmi < 18.5) return { label: "کمبود وزن", color: "var(--yellow)" };
-  if (bmi < 25) return { label: "نرمال", color: "var(--sage)" };
-  if (bmi < 30) return { label: "اضافه‌وزن", color: "var(--peach)" };
-  return { label: "چاقی", color: "#f08197" };
+  if (bmi < 18.5) return { label: "پایین‌تر از محدوده", color: "var(--yellow)" };
+  if (bmi < 25) return { label: "در محدودهٔ سالم", color: "var(--sage)" };
+  if (bmi < 30) return { label: "کمی بالاتر از محدوده", color: "var(--peach)" };
+  return { label: "بالاتر از محدوده", color: "#f08197" };
 }
 
 const STEPS = 4; // ۰:اسم، ۱:جنسیت+سال، ۲:قد+وزن، ۳:فعالیت  (گامِ نتیجه جدا)
@@ -109,9 +109,9 @@ export default function Onboarding({
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-5 animate-fade-up">
           <Mascot size={132} pose="cheer" float />
           <div>
-            <h2 className="text-[24px] font-extrabold tracking-tight">آماده‌ای، {name.trim().split(" ")[0]}! 🎉</h2>
+            <h2 className="text-[24px] font-extrabold tracking-tight">{name.trim().split(" ")[0]}، اولین قدمت آماده‌ست. 🎉</h2>
             <p className="secondary text-[15px] mt-1.5 leading-7">
-              این شاخصِ تودهٔ بدنیِ (BMI) توئه. حالا برنامه‌ی هوشمندِ تغذیه‌ات آماده‌ست.
+              برنامه‌ات رو روی این عدد چیدم — ولی این فقط یه شروعه، نه قضاوت.
             </p>
           </div>
           {bmi != null && (
@@ -162,7 +162,7 @@ export default function Onboarding({
           <Step
             emoji="🧬"
             title="کمی درباره‌ی خودت"
-            sub="برای محاسبه‌ی دقیقِ کالری و سوخت‌وساز لازمه."
+            sub="تا برنامه‌ای بسازم که واقعاً مالِ توئه."
           >
             <Field label="جنسیت">
               <Segmented
