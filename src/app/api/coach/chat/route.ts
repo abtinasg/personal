@@ -1,10 +1,15 @@
-import { authed, ok, bad } from "@/lib/api";
+import { authed, bad } from "@/lib/api";
 import { guardAI } from "@/lib/aiGuard";
-import { aiText, type AIMessage } from "@/lib/openrouter";
+import { streamText, type AIMessage } from "@/lib/openrouter";
 import { userSnapshot } from "@/lib/coach";
 import { captureFromText, captureMealFromImage, looksLikeIntake, type SavedItem } from "@/lib/capture";
 
 export const runtime = "nodejs";
+
+const enc = new TextEncoder();
+function sse(event: string, data: unknown): Uint8Array {
+  return enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
 
 export async function POST(req: Request) {
   const a = await authed();
@@ -14,7 +19,6 @@ export async function POST(req: Request) {
   const b = await req.json().catch(() => ({}));
 
   const incoming = Array.isArray(b.messages) ? b.messages : [];
-  // فقط نقش‌های مجاز و آخرین ۱۰ پیام
   const history: AIMessage[] = incoming
     .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string")
     .slice(-10)
@@ -24,13 +28,12 @@ export async function POST(req: Request) {
     return bad("پیام معتبر لازم است.");
   }
 
-  // اگه کاربر داره چیزی که خورده/خرج‌کرده/اندازه‌گرفته رو می‌گه، همین‌جا ثبتش کن.
   const lastUser = history[history.length - 1].content as string;
   const image = typeof b.image === "string" && b.image.trim() ? b.image.trim() : "";
   let saved: SavedItem[] = [];
   let captureNote = "";
+
   if (image) {
-    // عکسِ غذا: با مدلِ vision تشخیص بده و ثبتش کن.
     const res = await captureMealFromImage(a.db, a.uid, image, lastUser).catch(() => null);
     if (res) {
       saved = res.saved;
@@ -41,41 +44,59 @@ export async function POST(req: Request) {
     if (res) saved = res.saved;
   }
 
-  // عکسِ وضعیت بعد از ثبت گرفته می‌شه تا کالریِ امروز به‌روز باشه.
   const snap = await userSnapshot(a.db, a.uid);
 
   const savedNote = saved.length
     ? "\n\nهمین الان این موارد رو از پیامِ کاربر برای امروزش ثبت کردی: " +
       saved.map((s) => s.label).join("، ") +
-      ". اول کوتاه و گرم تأیید کن که ثبت شد، بعد یه نکته‌ی کوتاهِ مفید یا تشویق بده (مثلاً درباره‌ی کالری یا تعادلِ روز)."
+      ". اول کوتاه و گرم تأیید کن که ثبت شد، بعد یه نکته‌ی کوتاهِ مفید یا تشویق بده."
     : captureNote
-      ? `\n\nکاربر یه عکس فرستاد ولی نتونستی غذایی توش ثبت کنی. با مهربونی این رو بهش بگو: «${captureNote}»`
+      ? `\n\nکاربر یه عکس فرستاد ولی نتونستی غذایی توش ثبت کنی. با مهربونی بهش بگو: «${captureNote}»`
       : image
         ? "\n\nکاربر یه عکس فرستاد. اگه غذا بود ثبتش کردی؛ کوتاه و گرم راهنماییش کن."
         : "";
 
-  try {
-    const reply = await aiText(
-      [
-        {
-          role: "system",
-          content:
-            "تو «جوانه»‌ای — مربیِ شخصیِ کاربر در این اپ. فقط فارسیِ گرم و صمیمی («تو») حرف می‌زنی و خودت رو جوانه معرفی می‌کنی. " +
-            "شخصیتت: هم‌قدمِ کاربری، نه معلم. هیچ‌وقت سرزنش نمی‌کنی؛ اگه دیروز کاری جا موند می‌گی «دیروز نشد؟ امروز هست». بُردهای کوچیک رو جشن می‌گیری و وقتِ کاربر رو با جمله‌های کوتاه محترم می‌شمری. " +
-            "فلسفه‌ات بر پایه‌ی «عادت‌های اتمی» جیمز کلیر: هدف مهم نیست، هویت مهمه؛ هر عادتِ کوچک یک رأیه به آدمی که کاربر می‌خواد بشه؛ ثبات از شدت مهم‌تره؛ هیچ‌وقت دوبار جا ننداز؛ قانون ۲ دقیقه. " +
-            "وقتی کاربر یه هدفِ بزرگ می‌گه، همون لحظه بشکنش به چند قدمِ کوچیکِ امروز — اون‌قدر کوچیک که نشه نه گفت. " +
-            "کاربر می‌تونه چیزی که خورده یا خرج کرده رو بهت بگه؛ تو پشتِ صحنه ثبتش می‌کنی — پس طوری حرف بزن که انگار خودت ثبتش کردی. " +
-            "کوتاه، مشخص و عملی جواب بده (معمولاً ۲ تا ۴ جمله). از دادهٔ واقعیِ کاربر استفاده کن و وقتی مرتبطه به اسمِ هویت‌ها/ماموریت/عادت‌ها و جایزه‌هاش اشاره کن. حداکثر یک ایموجی (ترجیحاً 🌱) و بدون Markdown سنگین.\n\n" +
-            "وضعیتِ فعلیِ کاربر:\n" +
-            (snap.hasData ? snap.text : "هنوز هویت/عادت/ماموریتی نساخته.") +
-            savedNote,
-        },
-        ...history,
-      ],
-      { temperature: 0.7, maxTokens: 400 }
-    );
-    return ok({ reply: reply.trim(), saved });
-  } catch (e) {
-    return bad(e instanceof Error ? e.message : "مربی الان نتونست جواب بده.", 502);
-  }
+  const messages: AIMessage[] = [
+    {
+      role: "system",
+      content:
+        "تو «جوانه»‌ای — مربیِ شخصیِ کاربر در این اپ. فقط فارسیِ گرم و صمیمی («تو») حرف می‌زنی و خودت رو جوانه معرفی می‌کنی. " +
+        "شخصیتت: هم‌قدمِ کاربری، نه معلم. هیچ‌وقت سرزنش نمی‌کنی؛ اگه دیروز کاری جا موند می‌گی «دیروز نشد؟ امروز هست». بُردهای کوچیک رو جشن می‌گیری و وقتِ کاربر رو با جمله‌های کوتاه محترم می‌شمری. " +
+        "فلسفه‌ات بر پایه‌ی «عادت‌های اتمی» جیمز کلیر: هدف مهم نیست، هویت مهمه؛ هر عادتِ کوچک یک رأیه به آدمی که کاربر می‌خواد بشه؛ ثبات از شدت مهم‌تره؛ هیچ‌وقت دوبار جا ننداز؛ قانون ۲ دقیقه. " +
+        "وقتی کاربر یه هدفِ بزرگ می‌گه، همون لحظه بشکنش به چند قدمِ کوچیکِ امروز — اون‌قدر کوچیک که نشه نه گفت. " +
+        "کاربر می‌تونه چیزی که خورده یا خرج کرده رو بهت بگه؛ تو پشتِ صحنه ثبتش می‌کنی — پس طوری حرف بزن که انگار خودت ثبتش کردی. " +
+        "کوتاه، مشخص و عملی جواب بده (معمولاً ۲ تا ۴ جمله). از دادهٔ واقعیِ کاربر استفاده کن. حداکثر یک ایموجی (ترجیحاً 🌱) و بدون Markdown سنگین.\n\n" +
+        "وضعیتِ فعلیِ کاربر:\n" +
+        (snap.hasData ? snap.text : "هنوز هویت/عادت/ماموریتی نساخته.") +
+        savedNote,
+    },
+    ...history,
+  ];
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      // متادیتای ثبت‌شده‌ها را فوری بفرست تا client منتظر stream کامل نشود
+      controller.enqueue(sse("saved", { saved }));
+      try {
+        for await (const token of streamText(messages, { temperature: 0.7, maxTokens: 400 })) {
+          controller.enqueue(sse("token", token));
+        }
+        controller.enqueue(sse("done", {}));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "مربی الان نتونست جواب بده.";
+        controller.enqueue(sse("error", { message: msg }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      // به nginx/HAProxy می‌گوید response را buffer نکند — ضروری برای Arvan
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

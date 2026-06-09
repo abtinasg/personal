@@ -2,10 +2,53 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { apiSend, ApiError } from "@/lib/client";
+import { ApiError } from "@/lib/client";
 import { Sheet, Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 import { AiError } from "@/components/AiError";
+
+/** SSE stream از /api/coach/chat می‌خواند و رویدادها را yield می‌کند. */
+async function* readChatStream(
+  body: object
+): AsyncGenerator<{ event: string; data: unknown }> {
+  const res = await fetch("/api/coach/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new ApiError(json?.error || "خطا در ارتباط با مربی.", res.status);
+  }
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // رویدادهای SSE با \n\n از هم جدا می‌شوند
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() ?? "";
+      for (const part of parts) {
+        let event = "message";
+        let data = "";
+        for (const line of part.split("\n")) {
+          if (line.startsWith("event: ")) event = line.slice(7).trim();
+          else if (line.startsWith("data: ")) data = line.slice(6);
+        }
+        if (data) yield { event, data: JSON.parse(data) };
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 type Saved = { type: string; label: string };
 type Msg = { role: "user" | "assistant"; content: string; saved?: Saved[]; image?: string };
@@ -63,17 +106,51 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
     setMsgs(next);
     setInput("");
     setBusy(true);
+    let assistantStarted = false;
     try {
-      // تصویر جداگانه فرستاده می‌شه؛ تاریخچه فقط متن نگه می‌داره.
       const history = next.map(({ role, content }) => ({ role, content }));
-      const { reply, saved } = await apiSend<{ reply: string; saved?: Saved[] }>(
-        "/api/coach/chat",
-        "POST",
-        { messages: history, ...(image ? { image } : {}) }
-      );
-      setMsgs((m) => [...m, { role: "assistant", content: reply, saved }]);
+      let savedItems: Saved[] | undefined;
+      let streamErr: string | null = null;
+      for await (const { event, data } of readChatStream({
+        messages: history,
+        ...(image ? { image } : {}),
+      })) {
+        if (event === "token" && typeof data === "string") {
+          if (!assistantStarted) {
+            assistantStarted = true;
+            setMsgs((m) => [...m, { role: "assistant", content: data, ...(savedItems ? { saved: savedItems } : {}) }]);
+          } else {
+            setMsgs((m) => {
+              const copy = m.slice();
+              const last = copy[copy.length - 1];
+              if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: last.content + data };
+              return copy;
+            });
+          }
+        } else if (event === "saved") {
+          const arr = (data as { saved?: Saved[] })?.saved;
+          if (Array.isArray(arr) && arr.length) {
+            savedItems = arr;
+            if (assistantStarted) {
+              setMsgs((m) => {
+                const copy = m.slice();
+                const last = copy[copy.length - 1];
+                if (last?.role === "assistant") copy[copy.length - 1] = { ...last, saved: arr };
+                return copy;
+              });
+            }
+          }
+        } else if (event === "error") {
+          streamErr = (data as { message?: string })?.message || "خطا در ارتباط با مربی.";
+        }
+      }
+      if (streamErr) throw new Error(streamErr);
+      // پاسخِ خالی ولی با اقلامِ ثبت‌شده: bubble مختصر اضافه کن تا کاربر تأیید رو ببینه.
+      if (!assistantStarted && savedItems) {
+        setMsgs((m) => [...m, { role: "assistant", content: "", saved: savedItems }]);
+      }
     } catch (e) {
-      setErr(e instanceof ApiError ? e : new Error("خطا در ارتباط با مربی."));
+      setErr(e instanceof ApiError ? e : e instanceof Error ? e : new Error("خطا در ارتباط با مربی."));
     } finally {
       setBusy(false);
     }
@@ -145,7 +222,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
             </div>
           ))}
 
-          {busy && (
+          {busy && msgs[msgs.length - 1]?.role !== "assistant" && (
             <div className="flex justify-end">
               <div className="rounded-2xl px-4 py-3 bg-white shadow-soft"><Spinner className="!h-4 !w-4" /></div>
             </div>
