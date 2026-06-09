@@ -11,6 +11,7 @@ import { AiError } from "@/components/AiError";
 async function* readChatStream(
   body: object
 ): AsyncGenerator<{ event: string; data: unknown }> {
+  const t0 = performance.now(); // شروعِ درخواست — برای سنجشِ TTFTِ واقعیِ سمتِ کاربر
   const res = await fetch("/api/coach/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -26,6 +27,7 @@ async function* readChatStream(
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let clientTtftMs = -1; // زمان تا اولین توکن، آن‌طور که مرورگر حس می‌کند (شاملِ شبکه)
 
   try {
     while (true) {
@@ -42,7 +44,20 @@ async function* readChatStream(
           if (line.startsWith("event: ")) event = line.slice(7).trim();
           else if (line.startsWith("data: ")) data = line.slice(6);
         }
-        if (data) yield { event, data: JSON.parse(data) };
+        if (!data) continue;
+        const parsed = JSON.parse(data);
+        if (event === "token" && clientTtftMs < 0) {
+          clientTtftMs = performance.now() - t0;
+        }
+        if (event === "timing") {
+          // تایمینگ‌های سرور + TTFTِ واقعیِ مرورگر را در کنسولِ devtools نشان بده.
+          // eslint-disable-next-line no-console
+          console.log("[coach/chat timing]", {
+            ...(parsed as object),
+            client_ttft_ms: clientTtftMs < 0 ? null : Math.round(clientTtftMs),
+          });
+        }
+        yield { event, data: parsed };
       }
     }
   } finally {

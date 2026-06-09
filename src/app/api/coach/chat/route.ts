@@ -146,12 +146,26 @@ export async function POST(req: Request) {
         // اطمینان از پایانِ side-effectها قبل از بستنِ استریم تا هیچ نوشتنی گم نشود.
         // این‌ها هم‌زمان با توکن‌ها اجرا شده‌اند، پس معمولاً همین حالا تمام‌اند.
         await Promise.allSettled(background);
-        // یک خطِ خلاصه‌ی تایمینگ در لاگِ سرور: before_stream را با ttft مقایسه کن.
+        const totalMs = performance.now() - t0;
+        // (الف) لاگِ سرور.
         console.log(
           `[coach/chat timing] before_stream=${beforeStreamMs.toFixed(1)}ms ` +
             `ttft=${ttftMs < 0 ? "n/a" : ttftMs.toFixed(1) + "ms"} ` +
-            `total=${(performance.now() - t0).toFixed(1)}ms`
+            `total=${totalMs.toFixed(1)}ms`
         );
+        // (ب) برای مرورگر: همین اعداد را به‌صورتِ رویدادِ SSE می‌فرستیم تا کلاینت
+        //     بتواند در کنسولِ devtools چاپشان کند (console.logِ سرور آن‌جا دیده نمی‌شود).
+        try {
+          controller.enqueue(
+            sse("timing", {
+              before_stream_ms: Math.round(beforeStreamMs),
+              ttft_ms: ttftMs < 0 ? null : Math.round(ttftMs),
+              total_ms: Math.round(totalMs),
+            })
+          );
+        } catch {
+          /* استریم بسته شده */
+        }
         controller.close();
       }
     },
