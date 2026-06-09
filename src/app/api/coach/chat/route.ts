@@ -1,8 +1,13 @@
+import { NextResponse } from "next/server";
 import { authed, bad } from "@/lib/api";
 import { guardAI } from "@/lib/aiGuard";
+import { isEnabled } from "@/lib/flags";
 import { streamText, type AIMessage } from "@/lib/openrouter";
-import { userSnapshot } from "@/lib/coach";
+import { getCachedSnapshot, refreshSnapshot } from "@/lib/coach";
+import type { getServiceClient } from "@/lib/supabase";
 import { captureFromText, captureMealFromImage, looksLikeIntake, type SavedItem } from "@/lib/capture";
+
+type DB = ReturnType<typeof getServiceClient>;
 
 export const runtime = "nodejs";
 
@@ -11,13 +16,53 @@ function sse(event: string, data: unknown): Uint8Array {
   return enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
+/**
+ * ثبتِ «بهترین تلاشِ» آیتم‌های پیامِ کاربر (غذا/خرج/متریک) با یک فراخوانیِ LLM.
+ * این تابع *به‌موازاتِ* استریمِ چت اجرا می‌شود، نه قبل از آن — پس هیچ‌وقت TTFT را
+ * عقب نمی‌اندازد. خروجی‌اش بعداً به‌صورتِ رویدادِ SSE «saved» به کلاینت می‌رسد.
+ */
+async function runCapture(
+  db: DB,
+  uid: string,
+  lastUser: string,
+  image: string
+): Promise<SavedItem[]> {
+  try {
+    if (image) {
+      const res = await captureMealFromImage(db, uid, image, lastUser);
+      return res?.saved ?? [];
+    }
+    if (looksLikeIntake(lastUser)) {
+      const res = await captureFromText(db, uid, lastUser);
+      return res?.saved ?? [];
+    }
+  } catch {
+    /* best-effort — capture نباید چت را بشکند */
+  }
+  return [];
+}
+
 export async function POST(req: Request) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // A) مسیرِ بحرانی (CRITICAL PATH): فقط کارِ سریع و لازم، بعد فوراً stream.
+  //    هیچ کوئریِ سنگین یا فراخوانیِ LLM این‌جا await نمی‌شود.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // (۱) احرازِ هویتِ سبک — یک SELECTِ ایندکس‌دار روی users (لازم برای امنیت/FK).
   const a = await authed();
   if ("error" in a) return a.error;
-  const guard = await guardAI(a.db, a.uid, "coach_chat");
-  if ("error" in guard) return guard.error;
-  const b = await req.json().catch(() => ({}));
 
+  // (۲) کلیدِ قطعِ هوش مصنوعی — تنها گیتِ روی مسیرِ بحرانی. کش‌شده (~۳۰ث، بدونِ
+  //     round-trip در حالتِ داغ) و همان فلگی است که پایشِ بودجه هنگام پر شدنِ سقف
+  //     می‌اندازد. بقیه‌ی منطقِ guard (سهمیه/نرخ/لاگ) به پس‌زمینه می‌رود.
+  if (!(await isEnabled(a.db, "ai_enabled"))) {
+    return NextResponse.json(
+      { error: "هوش مصنوعیِ جوانه موقتاً غیرفعاله؛ کمی بعد دوباره امتحان کن. 🌱", code: "AI_DISABLED" },
+      { status: 503 }
+    );
+  }
+
+  const b = await req.json().catch(() => ({}));
   const incoming = Array.isArray(b.messages) ? b.messages : [];
   const history: AIMessage[] = incoming
     .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string")
@@ -30,31 +75,11 @@ export async function POST(req: Request) {
 
   const lastUser = history[history.length - 1].content as string;
   const image = typeof b.image === "string" && b.image.trim() ? b.image.trim() : "";
-  let saved: SavedItem[] = [];
-  let captureNote = "";
 
-  if (image) {
-    const res = await captureMealFromImage(a.db, a.uid, image, lastUser).catch(() => null);
-    if (res) {
-      saved = res.saved;
-      if (!saved.length && res.note) captureNote = res.note;
-    }
-  } else if (looksLikeIntake(lastUser)) {
-    const res = await captureFromText(a.db, a.uid, lastUser).catch(() => null);
-    if (res) saved = res.saved;
-  }
-
-  const snap = await userSnapshot(a.db, a.uid);
-
-  const savedNote = saved.length
-    ? "\n\nهمین الان این موارد رو از پیامِ کاربر برای امروزش ثبت کردی: " +
-      saved.map((s) => s.label).join("، ") +
-      ". اول کوتاه و گرم تأیید کن که ثبت شد، بعد یه نکته‌ی کوتاهِ مفید یا تشویق بده."
-    : captureNote
-      ? `\n\nکاربر یه عکس فرستاد ولی نتونستی غذایی توش ثبت کنی. با مهربونی بهش بگو: «${captureNote}»`
-      : image
-        ? "\n\nکاربر یه عکس فرستاد. اگه غذا بود ثبتش کردی؛ کوتاه و گرم راهنماییش کن."
-        : "";
+  // (۳) snapshot فقط از کشِ کوتاه‌مدت خوانده می‌شود (همگام، بدونِ دیتابیس). در صورتِ
+  //     نبودِ کش، context عمومی است و در پس‌زمینه برای نوبتِ بعد تازه می‌شود.
+  const snap = getCachedSnapshot(a.uid);
+  const snapText = snap?.hasData ? snap.text : "هنوز هویت/عادت/ماموریتی نساخته.";
 
   const messages: AIMessage[] = [
     {
@@ -65,16 +90,39 @@ export async function POST(req: Request) {
         "اگه کاربر چیزی که خورده یا خرج کرده گفت، انگار خودت پشتِ صحنه ثبتش کردی صحبت کن.\n" +
         "۲ تا ۴ جمله، عملی، با دادهٔ واقعی کاربر. حداکثر یک 🌱، بدون Markdown.\n\n" +
         "وضعیتِ فعلیِ کاربر:\n" +
-        (snap.hasData ? snap.text : "هنوز هویت/عادت/ماموریتی نساخته.") +
-        savedNote,
+        snapText,
     },
     ...history,
   ];
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // B) STREAM-FIRST: استریم فوراً برمی‌گردد. هر side-effect به‌موازاتِ توکن‌ها
+  //    اجرا می‌شود و قبل از بستنِ استریم تضمیناً تمام می‌شود (بدونِ از دست رفتنِ نوشتن).
+  // ─────────────────────────────────────────────────────────────────────────
   const stream = new ReadableStream({
     async start(controller) {
-      // متادیتای ثبت‌شده‌ها را فوری بفرست تا client منتظر stream کامل نشود
-      controller.enqueue(sse("saved", { saved }));
+      // کارهای پس‌زمینه که هم‌زمان با استریمِ چت اجرا می‌شوند (نه قبل از آن).
+      const background: Promise<unknown>[] = [];
+
+      // capture (فراخوانیِ LLM) — هم‌پوشانِ کاملِ استریمِ چت؛ هیچ تأثیری روی TTFT ندارد.
+      // به‌محضِ آماده‌شدن، رویدادِ `saved` را تزریق می‌کنیم (async-fill).
+      const savedEmit = runCapture(a.db, a.uid, lastUser, image)
+        .then((saved) => {
+          try {
+            controller.enqueue(sse("saved", { saved }));
+          } catch {
+            /* استریم بسته شده — نادیده بگیر */
+          }
+        })
+        .catch(() => {});
+      background.push(savedEmit);
+
+      // guard/سهمیه/لاگِ ai_usage — کاملاً پس‌زمینه و best-effort (نوشتنِ مصرف حفظ می‌شود).
+      background.push(guardAI(a.db, a.uid, "coach_chat").catch(() => {}));
+
+      // تازه‌سازیِ snapshot — کش را برای نوبتِ بعد گرم می‌کند؛ خارج از مسیرِ بحرانی.
+      background.push(refreshSnapshot(a.db, a.uid).catch(() => {}));
+
       try {
         for await (const token of streamText(messages, { temperature: 0.7, maxTokens: 400 })) {
           controller.enqueue(sse("token", token));
@@ -84,6 +132,9 @@ export async function POST(req: Request) {
         const msg = e instanceof Error ? e.message : "مربی الان نتونست جواب بده.";
         controller.enqueue(sse("error", { message: msg }));
       } finally {
+        // اطمینان از پایانِ side-effectها قبل از بستنِ استریم تا هیچ نوشتنی گم نشود.
+        // این‌ها هم‌زمان با توکن‌ها اجرا شده‌اند، پس معمولاً همین حالا تمام‌اند.
+        await Promise.allSettled(background);
         controller.close();
       }
     },

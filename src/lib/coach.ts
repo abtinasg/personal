@@ -48,6 +48,31 @@ export function computeGoodStreak(
   return { streak: n, startISO };
 }
 
+/**
+ * کشِ درون‌حافظه‌ایِ کوتاه‌مدتِ snapshot به‌ازای هر کاربر (TTL ~۱۰ث).
+ * هدف: snapshot را از مسیرِ بحرانیِ TTFT بیرون بکشیم. مسیرِ چت فقط از این کش
+ * می‌خواند (همگام، بدونِ کوئریِ دیتابیس) و در پس‌زمینه کش را برای نوبتِ بعد تازه
+ * می‌کند. اولین پیامِ یک گفتگو ممکن است کش‌نشده باشد (context عمومی)، ولی بقیه‌ی
+ * نوبت‌ها با تأخیرِ صفر کاملاً شخصی‌سازی می‌شوند. این دقیقاً الگوی پیشنهادیِ
+ * docs/ai-latency-forensics.md (§۶.۳/§۷) است.
+ */
+const SNAPSHOT_TTL_MS = 10_000;
+const snapshotCache = new Map<string, { at: number; snap: UserSnapshot }>();
+
+/** snapshotِ کش‌شده‌ی تازه (اگر باشد) — همگام و بدونِ I/O؛ برای مسیرِ بحرانی. */
+export function getCachedSnapshot(uid: string): UserSnapshot | null {
+  const hit = snapshotCache.get(uid);
+  if (hit && Date.now() - hit.at < SNAPSHOT_TTL_MS) return hit.snap;
+  return null;
+}
+
+/** snapshot را بازمی‌سازد و کش را تازه می‌کند — در پس‌زمینه صدا زده می‌شود. */
+export async function refreshSnapshot(db: DB, uid: string): Promise<UserSnapshot> {
+  const snap = await userSnapshot(db, uid);
+  snapshotCache.set(uid, { at: Date.now(), snap });
+  return snap;
+}
+
 /** یک عکسِ فشرده از وضعیت کاربر برای تزریق به پرامپت‌های مربی/بریفینگ/مرور. */
 export async function userSnapshot(db: DB, uid: string): Promise<UserSnapshot> {
   const today = todayISO();
