@@ -43,6 +43,11 @@ async function runCapture(
 }
 
 export async function POST(req: Request) {
+  // تایمینگ برای دیدنِ اثرِ stream-first: t0 = شروعِ هندلر. از performance.now()
+  // استفاده می‌کنیم نه console.time با لیبلِ ثابت، چون لیبل بینِ درخواست‌های هم‌زمان
+  // قاطی می‌شود. آخرِ کار یک خطِ خلاصه لاگ می‌کنیم: before_stream / ttft / total.
+  const t0 = performance.now();
+
   // ─────────────────────────────────────────────────────────────────────────
   // A) مسیرِ بحرانی (CRITICAL PATH): فقط کارِ سریع و لازم، بعد فوراً stream.
   //    هیچ کوئریِ سنگین یا فراخوانیِ LLM این‌جا await نمی‌شود.
@@ -95,6 +100,10 @@ export async function POST(req: Request) {
     ...history,
   ];
 
+  // پایانِ مسیرِ بحرانی: این عدد باید بعد از refactor خیلی کوچک باشد (فقط auth +
+  // گیتِ فلگ + خواندنِ کشِ snapshot)، نه ثانیه‌هایی که قبلاً capture/snapshot می‌برد.
+  const beforeStreamMs = performance.now() - t0;
+
   // ─────────────────────────────────────────────────────────────────────────
   // B) STREAM-FIRST: استریم فوراً برمی‌گردد. هر side-effect به‌موازاتِ توکن‌ها
   //    اجرا می‌شود و قبل از بستنِ استریم تضمیناً تمام می‌شود (بدونِ از دست رفتنِ نوشتن).
@@ -103,6 +112,7 @@ export async function POST(req: Request) {
     async start(controller) {
       // کارهای پس‌زمینه که هم‌زمان با استریمِ چت اجرا می‌شوند (نه قبل از آن).
       const background: Promise<unknown>[] = [];
+      let ttftMs = -1; // زمانِ اولین توکن (TTFT) — نکته‌ی اصلیِ این refactor.
 
       // capture (فراخوانیِ LLM) — هم‌پوشانِ کاملِ استریمِ چت؛ هیچ تأثیری روی TTFT ندارد.
       // به‌محضِ آماده‌شدن، رویدادِ `saved` را تزریق می‌کنیم (async-fill).
@@ -125,6 +135,7 @@ export async function POST(req: Request) {
 
       try {
         for await (const token of streamText(messages, { temperature: 0.7, maxTokens: 400 })) {
+          if (ttftMs < 0) ttftMs = performance.now() - t0; // اولین توکن رسید
           controller.enqueue(sse("token", token));
         }
         controller.enqueue(sse("done", {}));
@@ -135,6 +146,26 @@ export async function POST(req: Request) {
         // اطمینان از پایانِ side-effectها قبل از بستنِ استریم تا هیچ نوشتنی گم نشود.
         // این‌ها هم‌زمان با توکن‌ها اجرا شده‌اند، پس معمولاً همین حالا تمام‌اند.
         await Promise.allSettled(background);
+        const totalMs = performance.now() - t0;
+        // (الف) لاگِ سرور.
+        console.log(
+          `[coach/chat timing] before_stream=${beforeStreamMs.toFixed(1)}ms ` +
+            `ttft=${ttftMs < 0 ? "n/a" : ttftMs.toFixed(1) + "ms"} ` +
+            `total=${totalMs.toFixed(1)}ms`
+        );
+        // (ب) برای مرورگر: همین اعداد را به‌صورتِ رویدادِ SSE می‌فرستیم تا کلاینت
+        //     بتواند در کنسولِ devtools چاپشان کند (console.logِ سرور آن‌جا دیده نمی‌شود).
+        try {
+          controller.enqueue(
+            sse("timing", {
+              before_stream_ms: Math.round(beforeStreamMs),
+              ttft_ms: ttftMs < 0 ? null : Math.round(ttftMs),
+              total_ms: Math.round(totalMs),
+            })
+          );
+        } catch {
+          /* استریم بسته شده */
+        }
         controller.close();
       }
     },
