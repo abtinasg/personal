@@ -102,14 +102,21 @@ export async function aiJSON<T>(
 }
 
 /**
- * توکن‌های متنی را از OpenRouter یکی‌یکی yield می‌کند.
- * چون داده مداوم روی connection جاری است، reverse-proxy ایران
- * idle timeout نمی‌زند — 502/504 چت حل می‌شود.
+ * توکن‌های متنی را از ارائه‌دهنده یکی‌یکی yield می‌کند.
+ * اگر `OPENROUTER_STREAM=0` باشد (مثلاً gateway آروان که SSE پشتیبانی نمی‌کند)،
+ * یک non-stream call می‌زند و کلِ پاسخ را به‌صورت یک chunk بزرگ yield می‌کند —
+ * UI استریم نمی‌بیند ولی حداقل کار می‌کند و پشتِ پراکسی هنگ نمی‌زند.
  */
 export async function* streamText(
   messages: AIMessage[],
   opts?: { temperature?: number; maxTokens?: number; timeoutMs?: number }
 ): AsyncGenerator<string> {
+  if (process.env.OPENROUTER_STREAM === "0" || process.env.OPENROUTER_STREAM === "false") {
+    const full = await call(messages, opts);
+    if (full) yield full;
+    return;
+  }
+
   const controller = new AbortController();
   // timeout فقط تا دریافتِ اولین بایت از سرور — بعد از آن connection زنده است
   const timeoutId = setTimeout(() => controller.abort(), opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
