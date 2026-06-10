@@ -14,15 +14,22 @@ export async function GET() {
     .order("created_at", { ascending: false });
   if (error) return bad(error.message, 500);
 
-  const withCreds = await Promise.all(
-    (users ?? []).map(async (u) => {
-      const { count } = await a.db
-        .from("credentials")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", u.id);
-      return { ...u, passkeys: count ?? 0 };
-    })
-  );
+  const userIds = (users ?? []).map((u) => u.id);
+  const { data: credRows, error: credError } = await a.db
+    .from("credentials")
+    .select("user_id")
+    .in("user_id", userIds);
+  if (credError) return bad(credError.message, 500);
+
+  const credCounts = new Map<string, number>();
+  for (const row of credRows ?? []) {
+    credCounts.set(row.user_id, (credCounts.get(row.user_id) ?? 0) + 1);
+  }
+
+  const withCreds = (users ?? []).map((u) => ({
+    ...u,
+    passkeys: credCounts.get(u.id) ?? 0,
+  }));
 
   return ok({ users: withCreds });
 }
