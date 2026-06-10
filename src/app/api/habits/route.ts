@@ -7,6 +7,7 @@ export async function GET(req: Request) {
   if ("error" in a) return a.error;
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from"); // برای محاسبه‌ی استریک، لاگ‌های اخیر
+  const limit = Math.min(Number(searchParams.get("limit")) || 200, 500);
 
   const { data: habits, error } = await a.db
     .from("habits")
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
 
   let logsQ = a.db.from("habit_logs").select("*").eq("user_id", a.uid);
   if (from) logsQ = logsQ.gte("done_on", from);
+  logsQ = logsQ.limit(limit);
   const { data: logs } = await logsQ;
 
   return ok({ habits, logs: logs || [] });
