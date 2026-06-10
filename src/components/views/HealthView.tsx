@@ -28,7 +28,10 @@ export default function HealthView({ profile }: { profile: Profile | null }) {
     [metrics, today]
   );
 
-  const weights = metrics.filter((m) => m.kind === "weight").sort((a, b) => a.recorded_on.localeCompare(b.recorded_on));
+  const weights = useMemo(
+    () => metrics.filter((m) => m.kind === "weight").sort((a, b) => a.recorded_on.localeCompare(b.recorded_on)),
+    [metrics]
+  );
   const lastWeight = weights[weights.length - 1];
   const prevWeight = weights[weights.length - 2];
   const weightDelta = lastWeight && prevWeight ? Number(lastWeight.value) - Number(prevWeight.value) : null;

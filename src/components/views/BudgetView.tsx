@@ -73,7 +73,7 @@ export default function BudgetView({ profile }: { profile: Profile | null }) {
   }, [txs]);
 
   const surplus = income - expense;
-  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const cats = useMemo(() => Object.entries(byCat).sort((a, b) => b[1] - a[1]), [byCat]);
   const activeGoals = goals.filter((g) => g.status !== "archived");
 
   async function removeTx(id: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiSend } from "@/lib/client";
 import { fa, money, todayISO, daysAgoISO, monthStart, monthKey, jWeekday, isoDay } from "@/lib/format";
 import { type Habit, type HabitLog, type HealthMetric, type Identity, type Meal, type Mission, type Mood, type Profile, type Tab, type Transaction, identityLevel } from "@/lib/types";
@@ -50,6 +50,11 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
 
   useEffect(() => { load(); }, [load]);
 
+  const topIdentities = useMemo(
+    () => data ? [...data.identities].sort((a, b) => b.vote_total - a.vote_total).slice(0, 4) : [],
+    [data]
+  );
+
   async function setMood(score: number) {
     setData((d) => d && { ...d, moods: upsertMood(d.moods, today, score) });
     await apiSend("/api/moods", "POST", { score, date: today });
@@ -74,7 +79,6 @@ export default function DashboardView({ profile, onGoto }: { profile: Profile | 
   const currency = profile?.currency || "تومان";
 
   const activeMission = data.missions.find((m) => m.status === "active");
-  const topIdentities = [...data.identities].sort((a, b) => b.vote_total - a.vote_total).slice(0, 4);
 
   return (
     <div className="space-y-3">
