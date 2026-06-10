@@ -48,6 +48,22 @@ export function computeGoodStreak(
   return { streak: n, startISO };
 }
 
+// ── snapshot cache ────────────────────────────────────────────────────────────
+const SNAP_TTL_MS = 10_000;
+const snapCache = new Map<string, { at: number; snap: UserSnapshot }>();
+
+export function getCachedSnapshot(uid: string): UserSnapshot | null {
+  const hit = snapCache.get(uid);
+  if (hit && Date.now() - hit.at < SNAP_TTL_MS) return hit.snap;
+  return null;
+}
+
+export async function refreshSnapshot(db: DB, uid: string): Promise<UserSnapshot> {
+  const snap = await userSnapshot(db, uid);
+  snapCache.set(uid, { at: Date.now(), snap });
+  return snap;
+}
+
 /** یک عکسِ فشرده از وضعیت کاربر برای تزریق به پرامپت‌های مربی/بریفینگ/مرور. */
 export async function userSnapshot(db: DB, uid: string): Promise<UserSnapshot> {
   const today = todayISO();

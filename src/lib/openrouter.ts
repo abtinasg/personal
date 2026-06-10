@@ -23,10 +23,76 @@ function apiKey(): string {
   return key;
 }
 
-// برای مسیرهای همزمان (مثل چت) این timeout باید کمتر از timeout پراکسی Arvan باشد.
-// برای مسیرهای async (مثل تولید برنامه‌ی ورزشی) می‌توان مقدار بزرگ‌تری داد.
-// مقدار پیش‌فرض ۲۵ ثانیه است تا error handler ما قبل از پراکسی اجرا شود.
+function headers(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey()}`,
+    "Content-Type": "application/json",
+    "HTTP-Referer": process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+    "X-Title": "Amrooz",
+  };
+}
+
+// سقفِ کلِ انتظار (باید کمتر از timeout پراکسیِ آروان باشد تا error handler ما اول اجرا شود).
 const DEFAULT_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS) || 25_000;
+
+// تایم‌اوتِ «فازِ اتصال» (تا رسیدنِ هدرها). روی مسیرِ فیلترشده/cross-border اغلب
+// خودِ connect است که گیر می‌کند؛ به‌جای ۲۵ ثانیه انتظار، بعد از این مدت قطع و
+// یک‌بار دیگر تلاش می‌کنیم (forensics §3 رتبه‌ی ۵ — «بدونِ retry، صفر تاب‌آوری»).
+const CONNECT_TIMEOUT_MS = Number(process.env.OPENROUTER_CONNECT_TIMEOUT_MS) || 8_000;
+const RETRY_DELAY_MS = 350;
+
+/**
+ * اتصال با «حداکثر یک تلاشِ دوباره»، فقط در فازِ connect:
+ *   • تلاشِ اول با تایم‌اوتِ کوتاه (CONNECT_TIMEOUT_MS)
+ *   • روی AbortError / خطای شبکه / 5xx / 429 → یک تلاشِ دیگر با بودجه‌ی کامل
+ *   • 4xxِ واقعی (کلیدِ نامعتبر، مدلِ اشتباه و …) → بدونِ تکرار، خطا بالا می‌رود
+ *
+ * تایم‌اوت فقط تا دریافتِ هدرهاست؛ بعد از آن استریم آزاد است (رفتارِ قبلی حفظ شده).
+ * چون retry فقط وقتی رخ می‌دهد که هنوز هیچ بایتی نیامده، ریسکِ تولید/صورتحسابِ
+ * دوباره عملاً صفر است.
+ */
+async function connectWithRetry(
+  payload: Record<string, unknown>,
+  timeoutMs: number
+): Promise<Response> {
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    const controller = new AbortController();
+    const budget = attempt === 0 ? Math.min(CONNECT_TIMEOUT_MS, timeoutMs) : timeoutMs;
+    const tid = setTimeout(() => controller.abort(), budget);
+
+    let res: Response | null = null;
+    try {
+      res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      lastErr =
+        e instanceof Error && e.name === "AbortError"
+          ? new Error("هوش مصنوعی به‌موقع پاسخ نداد. لطفاً دوباره تلاش کن.")
+          : e;
+    } finally {
+      // مثل نسخه‌ی قبل: تایمر فقط تا هدرها زنده است؛ بدنه/استریم را نمی‌کشد.
+      clearTimeout(tid);
+    }
+
+    if (res) {
+      if (res.ok) return res;
+      const detail = await res.text().catch(() => "");
+      const err = new Error(`خطا از OpenRouter (${res.status}): ${detail.slice(0, 300)}`);
+      if (res.status < 500 && res.status !== 429) throw err; // 4xx واقعی — تکرار بی‌فایده
+      lastErr = err; // 5xx/429 — قابلِ تکرار
+    }
+
+    if (attempt === 0) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error("اتصال به هوش مصنوعی برقرار نشد.");
+}
 
 async function call(
   messages: AIMessage[],
@@ -38,43 +104,18 @@ async function call(
     timeoutMs?: number;
   } = {}
 ): Promise<string> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey()}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
-        "X-Title": "Yek-Darsad",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
-        messages,
-        temperature: opts.temperature ?? 0.2,
-        max_tokens: opts.maxTokens ?? 800,
-        // seed باعث می‌شه ورودیِ یکسان خروجیِ پایدار بده (مثلاً تخمینِ کالریِ یک عکس هر بار یکی باشه).
-        ...(opts.seed != null ? { seed: opts.seed } : {}),
-        ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-      }),
-      signal: controller.signal,
-    });
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new Error("هوش مصنوعی به‌موقع پاسخ نداد. لطفاً دوباره تلاش کن.");
-    }
-    throw e;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`خطا از OpenRouter (${res.status}): ${detail.slice(0, 300)}`);
-  }
+  const res = await connectWithRetry(
+    {
+      model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+      messages,
+      temperature: opts.temperature ?? 0.2,
+      max_tokens: opts.maxTokens ?? 800,
+      // seed باعث می‌شه ورودیِ یکسان خروجیِ پایدار بده (مثلاً تخمینِ کالریِ یک عکس هر بار یکی باشه).
+      ...(opts.seed != null ? { seed: opts.seed } : {}),
+      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+    },
+    opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  );
 
   const data = await res.json().catch(() => null);
   const content = data?.choices?.[0]?.message?.content;
@@ -102,7 +143,7 @@ export async function aiJSON<T>(
 }
 
 /**
- * توکن‌های متنی را از OpenRouter یکی‌یکی yield می‌کند.
+ * توکن‌های متنی را از ارائه‌دهنده یکی‌یکی yield می‌کند.
  * چون داده مداوم روی connection جاری است، reverse-proxy ایران
  * idle timeout نمی‌زند — 502/504 چت حل می‌شود.
  */
@@ -110,42 +151,16 @@ export async function* streamText(
   messages: AIMessage[],
   opts?: { temperature?: number; maxTokens?: number; timeoutMs?: number }
 ): AsyncGenerator<string> {
-  const controller = new AbortController();
-  // timeout فقط تا دریافتِ اولین بایت از سرور — بعد از آن connection زنده است
-  const timeoutId = setTimeout(() => controller.abort(), opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey()}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
-        "X-Title": "Yek-Darsad",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
-        messages,
-        temperature: opts?.temperature ?? 0.7,
-        max_tokens: opts?.maxTokens ?? 400,
-        stream: true,
-      }),
-      signal: controller.signal,
-    });
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new Error("هوش مصنوعی به‌موقع پاسخ نداد. لطفاً دوباره تلاش کن.");
-    }
-    throw e;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`خطا از OpenRouter (${res.status}): ${detail.slice(0, 300)}`);
-  }
+  const res = await connectWithRetry(
+    {
+      model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+      messages,
+      temperature: opts?.temperature ?? 0.7,
+      max_tokens: opts?.maxTokens ?? 400,
+      stream: true,
+    },
+    opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  );
 
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();

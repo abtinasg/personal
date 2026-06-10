@@ -1,5 +1,6 @@
 import type { getServiceClient } from "@/lib/supabase";
 import { logEvent } from "@/lib/events";
+import { bustSubCache } from "@/lib/subCache";
 
 type DB = ReturnType<typeof getServiceClient>;
 
@@ -167,6 +168,7 @@ export async function activateSubscription(
     p_days: days,
   });
   if (error) throw new Error(error.message);
+  bustSubCache(uid);
   return data as string;
 }
 

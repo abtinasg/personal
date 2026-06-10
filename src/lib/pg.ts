@@ -380,7 +380,7 @@ export function createPgClient(url: string): PgClient {
   // و فقط وقتی صریحاً sslmode=require در URL باشد SSL را روشن می‌کنیم.
   const useSSL = /sslmode=require/.test(url);
   const sql = postgres(url, {
-    max: 10,
+    max: Number(process.env.PG_POOL_MAX) || 20,
     idle_timeout: 20,
     max_lifetime: 60 * 30, // اتصال‌ها را هر ۳۰ دقیقه بازیافت کن تا اتصالِ بیاتِ بسته‌شده توسطِ سرور باقی نماند
     connect_timeout: 10,

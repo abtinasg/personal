@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 const GUEST_PER_HOUR = Number(process.env.GUEST_PER_HOUR) || 5;
 const GUEST_PER_DAY = Number(process.env.GUEST_PER_DAY) || 20;
 
-/** IPِ کلاینت را از هدرهای پراکسی (Vercel) بیرون می‌کشد. */
+/** IPِ کلاینت را از هدرهای پراکسی (آروان) بیرون می‌کشد. */
 function clientIp(req: Request): string {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();

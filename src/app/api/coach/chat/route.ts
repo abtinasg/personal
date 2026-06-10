@@ -1,10 +1,43 @@
+/**
+ * stream-first: guardAI (1 RTT) → snapshot از کش (صفر I/O) → streamText فوراً
+ * capture موازی اجرا می‌شود و نتیجه‌اش با event «saved» تزریق می‌شود.
+ * استثنا: برای عکس تا ۶ ثانیه صبرِ نرم — تا جوابِ مدل بتواند به غذا اشاره کند.
+ */
 import { authed, bad } from "@/lib/api";
 import { guardAI } from "@/lib/aiGuard";
+import { getCachedSnapshot, refreshSnapshot } from "@/lib/coach";
+import {
+  captureFromText,
+  captureMealFromImage,
+  looksLikeIntake,
+  type CaptureResult,
+} from "@/lib/capture";
 import { streamText, type AIMessage } from "@/lib/openrouter";
-import { userSnapshot } from "@/lib/coach";
-import { captureFromText, captureMealFromImage, looksLikeIntake, type SavedItem } from "@/lib/capture";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type ChatBody = {
+  message?: string;
+  image?: string;
+  history?: { role: "user" | "assistant"; content: string }[];
+  // سازگاری با فرمتِ قدیمی (messages array)
+  messages?: { role: "user" | "assistant"; content: string }[];
+};
+
+function buildSystemPrompt(snapText: string | null): string {
+  return [
+    "تو «جوانه»‌ای، مربیِ شخصیِ کاربر. فارسیِ گرم و صمیمی («تو»)، هم‌قدم نه معلم، هیچ‌وقت سرزنش نمی‌کنی — اگه چیزی جا موند: «دیروز نشد؟ امروز هست». بُردهای کوچیک رو جشن می‌گیری.\n" +
+    "فلسفه‌ی «عادت‌های اتمی»: هویت مهم‌تر از هدف، ثبات مهم‌تر از شدت، هیچ‌وقت دو بار جا ننداز، قانون ۲ دقیقه. هدفِ بزرگ رو همون‌جا به قدمِ کوچیکِ امروز بشکن.\n" +
+    "اگه پیامِ کاربر شبیهِ گزارش/ثبت بود (غذا، خرج، آب، وزن...)، فرض کن سیستمِ ثبتِ خودکار جداگانه ذخیره‌اش می‌کند؛ تو فقط کوتاه واکنش نشان بده — جزئیاتِ ثبت را خودت اختراع نکن.\n" +
+    "۲ تا ۴ جمله، عملی، با دادهٔ واقعی کاربر. حداکثر یک 🌱، بدون Markdown.",
+    snapText ? `وضعیتِ فعلیِ کاربر:\n${snapText.slice(0, 1200)}` : "هنوز هویت/عادت/ماموریتی نساخته.",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+const sleep = (ms: number) => new Promise<null>((r) => setTimeout(() => r(null), ms));
 
 const enc = new TextEncoder();
 function sse(event: string, data: unknown): Uint8Array {
@@ -14,77 +47,101 @@ function sse(event: string, data: unknown): Uint8Array {
 export async function POST(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
-  const guard = await guardAI(a.db, a.uid, "coach_chat");
-  if ("error" in guard) return guard.error;
-  const b = await req.json().catch(() => ({}));
+  const { uid, db } = a;
 
-  const incoming = Array.isArray(b.messages) ? b.messages : [];
-  const history: AIMessage[] = incoming
-    .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string")
-    .slice(-8)
-    .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 1000) }));
-
-  if (!history.length || history[history.length - 1].role !== "user") {
-    return bad("پیام معتبر لازم است.");
+  let body: ChatBody;
+  try {
+    body = (await req.json()) as ChatBody;
+  } catch {
+    return bad("بدنه‌ی درخواست نامعتبر است.");
   }
 
-  const lastUser = history[history.length - 1].content as string;
-  const image = typeof b.image === "string" && b.image.trim() ? b.image.trim() : "";
-  let saved: SavedItem[] = [];
-  let captureNote = "";
+  const g = await guardAI(db, uid, "coach_chat");
+  if ("error" in g) return g.error;
 
+  // پشتیبانی از هر دو فرمت ارسال پیام
+  const rawHistory = Array.isArray(body.history)
+    ? body.history
+    : Array.isArray(body.messages)
+      ? body.messages
+      : [];
+  const message = body.message
+    ? String(body.message).trim().slice(0, 1000)
+    : rawHistory.length
+      ? String(rawHistory[rawHistory.length - 1]?.content || "").trim().slice(0, 1000)
+      : "";
+  const image = typeof body.image === "string" ? body.image.trim() : "";
+  if (!message && !image) return bad("پیامی نفرستادی.");
+
+  // ── ① snapshot: از کش (صفر کوئری در مسیرِ بحرانی)؛ تازه‌سازی در پس‌زمینه ──
+  const snap = getCachedSnapshot(uid);
+  void refreshSnapshot(db, uid).catch(() => {});
+
+  // ── ② capture: شروع موازی، استریم را بلاک نمی‌کند ──
+  const capturePromise: Promise<CaptureResult | null> = image
+    ? captureMealFromImage(db, uid, image, message)
+    : message && looksLikeIntake(message)
+      ? captureFromText(db, uid, message)
+      : Promise.resolve(null);
+  capturePromise.catch(() => null);
+
+  // برای عکس، تا ۶ ثانیه صبرِ نرم
+  let preCapture: CaptureResult | null = null;
   if (image) {
-    const res = await captureMealFromImage(a.db, a.uid, image, lastUser).catch(() => null);
-    if (res) {
-      saved = res.saved;
-      if (!saved.length && res.note) captureNote = res.note;
-    }
-  } else if (looksLikeIntake(lastUser)) {
-    const res = await captureFromText(a.db, a.uid, lastUser).catch(() => null);
-    if (res) saved = res.saved;
+    preCapture = await Promise.race([capturePromise, sleep(6000)]).catch(() => null);
   }
 
-  const snap = await userSnapshot(a.db, a.uid);
-
-  const savedNote = saved.length
-    ? "\n\nهمین الان این موارد رو از پیامِ کاربر برای امروزش ثبت کردی: " +
-      saved.map((s) => s.label).join("، ") +
-      ". اول کوتاه و گرم تأیید کن که ثبت شد، بعد یه نکته‌ی کوتاهِ مفید یا تشویق بده."
-    : captureNote
-      ? `\n\nکاربر یه عکس فرستاد ولی نتونستی غذایی توش ثبت کنی. با مهربونی بهش بگو: «${captureNote}»`
-      : image
-        ? "\n\nکاربر یه عکس فرستاد. اگه غذا بود ثبتش کردی؛ کوتاه و گرم راهنماییش کن."
-        : "";
+  const history = rawHistory
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .slice(-8)
+    .map((h): AIMessage => ({ role: h.role, content: String(h.content || "").slice(0, 1000) }));
 
   const messages: AIMessage[] = [
-    {
-      role: "system",
-      content:
-        "تو «جوانه»‌ای، مربیِ شخصیِ کاربر. فارسیِ گرم و صمیمی («تو»)، هم‌قدم نه معلم، هیچ‌وقت سرزنش نمی‌کنی — اگه چیزی جا موند: «دیروز نشد؟ امروز هست». بُردهای کوچیک رو جشن می‌گیری.\n" +
-        "فلسفه‌ی «عادت‌های اتمی»: هویت مهم‌تر از هدف، ثبات مهم‌تر از شدت، هیچ‌وقت دو بار جا ننداز، قانون ۲ دقیقه. هدفِ بزرگ رو همون‌جا به قدمِ کوچیکِ امروز بشکن.\n" +
-        "اگه کاربر چیزی که خورده یا خرج کرده گفت، انگار خودت پشتِ صحنه ثبتش کردی صحبت کن.\n" +
-        "۲ تا ۴ جمله، عملی، با دادهٔ واقعی کاربر. حداکثر یک 🌱، بدون Markdown.\n\n" +
-        "وضعیتِ فعلیِ کاربر:\n" +
-        (snap.hasData ? snap.text : "هنوز هویت/عادت/ماموریتی نساخته.") +
-        savedNote,
-    },
+    { role: "system", content: buildSystemPrompt(snap?.text ?? null) },
+    ...(preCapture?.saved.length
+      ? [{
+          role: "system" as const,
+          content: `همین الان از روی پیام/عکسِ کاربر ثبت شد: ${preCapture.saved.map((s) => s.label).join("؛ ")}. در جوابت کوتاه به آن اشاره کن.`,
+        }]
+      : []),
     ...history,
+    { role: "user", content: message || "این عکس رو برات فرستادم." },
   ];
 
-  const stream = new ReadableStream({
+  const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      // متادیتای ثبت‌شده‌ها را فوری بفرست تا client منتظر stream کامل نشود
-      controller.enqueue(sse("saved", { saved }));
+      let closed = false;
+      const send = (event: string, data: unknown) => {
+        if (closed) return;
+        try { controller.enqueue(sse(event, data)); } catch { closed = true; }
+      };
+
+      let savedSent = false;
+      const emitSaved = (r: CaptureResult | null) => {
+        if (!r || savedSent) return;
+        if (r.saved.length || r.note) {
+          send("saved", { saved: r.saved, note: r.note ?? null });
+          savedSent = true;
+        }
+      };
+
+      emitSaved(preCapture);
+      void capturePromise.then(emitSaved, () => {});
+
       try {
         for await (const token of streamText(messages, { temperature: 0.7, maxTokens: 400 })) {
-          controller.enqueue(sse("token", token));
+          send("token", { t: token });
         }
-        controller.enqueue(sse("done", {}));
+
+        const late = await Promise.race([capturePromise, sleep(800)]).catch(() => null);
+        emitSaved(late);
+
+        send("done", {});
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "مربی الان نتونست جواب بده.";
-        controller.enqueue(sse("error", { message: msg }));
+        send("error", { message: e instanceof Error ? e.message : "خطا در گفتگو با مربی." });
       } finally {
-        controller.close();
+        closed = true;
+        try { controller.close(); } catch { /* قبلاً بسته شده */ }
       }
     },
   });
@@ -93,7 +150,7 @@ export async function POST(req: Request) {
     headers: {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
-      // به nginx/HAProxy می‌گوید response را buffer نکند — ضروری برای Arvan
+      Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     },
   });
