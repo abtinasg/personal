@@ -45,7 +45,7 @@ const SLIDES: { icon: string; title: string; desc: string; tint: string; accent:
 
 export default function LoginPage() {
   const router = useRouter();
-  const [screen, setScreen] = useState<Screen>("onboarding");
+  const [screen, setScreen] = useState<Screen | null>(null);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [username, setUsername] = useState("");
@@ -224,6 +224,8 @@ export default function LoginPage() {
       setBusy(false);
     }
   }
+
+  if (screen === null) return null;
 
   if (screen === "splash") {
     return <SplashScreen onContinue={goFromSplash} />;
@@ -524,6 +526,7 @@ export default function LoginPage() {
               <input
                 className="ios-input w-full pr-10 text-right"
                 placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹"
+                type="tel"
                 inputMode="numeric"
                 autoComplete="tel"
                 value={phone}

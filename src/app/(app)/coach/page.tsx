@@ -24,9 +24,17 @@ export default function CoachPage() {
 
   useEffect(() => {
     let alive = true;
+    const todayKey = "zendegi:briefing:" + new Date().toISOString().slice(0, 10);
+    try {
+      const cached = localStorage.getItem(todayKey);
+      if (cached) { setBriefing(cached); setLoading(false); return; }
+    } catch { /* noop */ }
     apiGet<{ briefing: string }>("/api/coach/briefing")
       .then((r) => {
-        if (alive) setBriefing(r.briefing);
+        if (alive) {
+          setBriefing(r.briefing);
+          try { localStorage.setItem(todayKey, r.briefing); } catch { /* noop */ }
+        }
       })
       .catch(() => {
         /* بریفینگ اختیاریه */

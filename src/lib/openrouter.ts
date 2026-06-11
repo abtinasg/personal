@@ -28,6 +28,11 @@ function apiKey(): string {
 // مقدار پیش‌فرض ۲۵ ثانیه است تا error handler ما قبل از پراکسی اجرا شود.
 const DEFAULT_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS) || 25_000;
 
+// اگر مدلِ اصلی کُند بود، بعد از FALLBACK_DELAY_MS ثانیه یک درخواستِ موازی با مدلِ سریع‌تر می‌فرستیم.
+// هر کدام اول جواب دادند برنده می‌شوند. با خالی گذاشتن OPENROUTER_FALLBACK_MODEL غیرفعال می‌شود.
+const FALLBACK_MODEL = process.env.OPENROUTER_FALLBACK_MODEL ?? "";
+const FALLBACK_DELAY_MS = Number(process.env.OPENROUTER_FALLBACK_DELAY_MS) || 9_000;
+
 async function call(
   messages: AIMessage[],
   opts: {
@@ -36,6 +41,7 @@ async function call(
     maxTokens?: number;
     seed?: number;
     timeoutMs?: number;
+    model?: string;
   } = {}
 ): Promise<string> {
   const controller = new AbortController();
@@ -52,7 +58,7 @@ async function call(
         "X-Title": "Yek-Darsad",
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+        model: opts.model ?? (process.env.OPENROUTER_MODEL || DEFAULT_MODEL),
         messages,
         temperature: opts.temperature ?? 0.2,
         max_tokens: opts.maxTokens ?? 800,
@@ -73,7 +79,8 @@ async function call(
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`خطا از OpenRouter (${res.status}): ${detail.slice(0, 300)}`);
+    console.error("[openrouter] provider error", res.status, detail.slice(0, 500));
+    throw new Error("سرویسِ هوش مصنوعی الان در دسترس نیست. لطفاً دوباره تلاش کن.");
   }
 
   const data = await res.json().catch(() => null);
@@ -84,12 +91,43 @@ async function call(
   return content;
 }
 
+/**
+ * مدلِ اصلی را صدا می‌زند؛ اگر OPENROUTER_FALLBACK_MODEL تنظیم باشد و اصلی کُند باشد،
+ * بعد از FALLBACK_DELAY_MS یک درخواستِ موازی ارسال می‌شود و هر کدام اول برگشتند استفاده می‌شود.
+ */
+function raceWithFallback(
+  messages: AIMessage[],
+  opts: Parameters<typeof call>[1]
+): Promise<string> {
+  if (!FALLBACK_MODEL) return call(messages, opts);
+
+  return new Promise<string>((resolve, reject) => {
+    let settled = false;
+    const win = (v: string) => { if (!settled) { settled = true; resolve(v); } };
+    const lose = (e: unknown) => { if (!settled) { settled = true; reject(e); } };
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      call(messages, { ...opts, model: FALLBACK_MODEL }).then(win).catch(lose);
+    }, FALLBACK_DELAY_MS);
+
+    call(messages, opts)
+      .then((v) => { clearTimeout(timer); win(v); })
+      .catch((e) => {
+        // اصلی شکست خورد — فوری fallback را استارت می‌زنیم (اگر هنوز شروع نشده)
+        clearTimeout(timer);
+        if (settled) return;
+        call(messages, { ...opts, model: FALLBACK_MODEL }).then(win).catch(lose);
+      });
+  });
+}
+
 /** یک پاسخ متنی آزاد از مدل می‌گیرد. */
 export async function aiText(
   messages: AIMessage[],
   opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number }
 ): Promise<string> {
-  return call(messages, opts);
+  return raceWithFallback(messages, opts);
 }
 
 /** از مدل می‌خواهد فقط JSON بدهد و آن را parse می‌کند. */
@@ -97,7 +135,7 @@ export async function aiJSON<T>(
   messages: AIMessage[],
   opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number }
 ): Promise<T> {
-  const raw = await call(messages, { ...opts, json: true });
+  const raw = await raceWithFallback(messages, { ...opts, json: true });
   return parseJSON<T>(raw);
 }
 
@@ -144,7 +182,8 @@ export async function* streamText(
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`خطا از OpenRouter (${res.status}): ${detail.slice(0, 300)}`);
+    console.error("[openrouter] stream provider error", res.status, detail.slice(0, 500));
+    throw new Error("سرویسِ هوش مصنوعی الان در دسترس نیست. لطفاً دوباره تلاش کن.");
   }
 
   const reader = res.body!.getReader();

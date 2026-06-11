@@ -2,6 +2,7 @@ import { authed, ok, bad } from "@/lib/api";
 import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
 import { todayISO, daysAgoISO } from "@/lib/format";
+import { getCached, setCached, secondsUntilMidnight } from "@/lib/aiCache";
 
 export const runtime = "nodejs";
 
@@ -29,13 +30,23 @@ type WeeklyStats = {
   activeMission: string | null;
 };
 
-export async function GET() {
+export async function GET(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
-  const guard = await guardAI(a.db, a.uid, "coach_weekly");
-  if ("error" in guard) return guard.error;
+
+  // quick=1: آمارها را بدون فراخوانیِ AI برمی‌گرداند — کلاینت آن‌ها را فوری نشان می‌دهد
+  // و بعد یک درخواستِ جداگانه برای تحلیلِ AI می‌فرستد.
+  const quick = new URL(req.url).searchParams.get("quick") === "1";
 
   const today = todayISO();
+  const cacheKey = `weekly:${a.uid}:${today}`;
+  const cached = await getCached<object>(a.db, cacheKey);
+  if (cached) return ok(cached);
+
+  if (!quick) {
+    const guard = await guardAI(a.db, a.uid, "coach_weekly");
+    if ("error" in guard) return guard.error;
+  }
   const weekAgo = daysAgoISO(6);
 
   const [habitRes, logRes, idnRes, mealRes, txRes, moodRes, missionRes, profileRes] = await Promise.all([
@@ -58,11 +69,20 @@ export async function GET() {
 
   const hasData = habits.length > 0 || meals.length > 0 || txs.length > 0 || moods.length > 0;
   if (!hasData) {
-    return ok({ hasData: false });
+    const payload = { hasData: false };
+    if (!quick) await setCached(a.db, cacheKey, payload, secondsUntilMidnight());
+    return ok(payload);
   }
 
-  // عادت‌ها: نرخِ انجام در ۷ روز
-  const habitPossible = habits.length * 7;
+  // عادت‌ها: نرخِ انجام در ۷ روز — فقط روزهایی که عادت از قبل وجود داشته حساب می‌شه
+  const weekAgoMs = new Date(weekAgo).getTime();
+  const todayMs = new Date(today).getTime();
+  const habitPossible = habits.reduce((sum, h) => {
+    const createdMs = new Date((h.created_at as string).slice(0, 10)).getTime();
+    const startMs = Math.max(createdMs, weekAgoMs);
+    const days = Math.floor((todayMs - startMs) / 86400000) + 1;
+    return sum + Math.max(0, Math.min(7, days));
+  }, 0);
   const habitDone = logs.length;
   const habitRate = habitPossible ? Math.round((habitDone / habitPossible) * 100) : 0;
 
@@ -120,6 +140,9 @@ export async function GET() {
     activeMission,
   };
 
+  // quick mode: آمار را فوری برمی‌گردانیم — کلاینت بعداً برای review درخواست می‌فرستد
+  if (quick) return ok({ hasData: true, stats });
+
   const MOOD_FA = ["", "بد", "نه‌چندان", "معمولی", "خوب", "عالی"];
   const factLines = [
     `بازه: ۷ روزِ گذشته تا ${today}`,
@@ -149,10 +172,10 @@ export async function GET() {
         },
         { role: "user", content: factLines },
       ],
-      { temperature: 0.6, maxTokens: 500 }
+      { temperature: 0.6, maxTokens: 380 }
     );
 
-    return ok({
+    const payload = {
       hasData: true,
       stats,
       review: {
@@ -162,7 +185,9 @@ export async function GET() {
         focus: String(review.focus || "").trim(),
         suggestion: String(review.suggestion || "").trim(),
       },
-    });
+    };
+    await setCached(a.db, cacheKey, payload, secondsUntilMidnight());
+    return ok(payload);
   } catch (e) {
     return bad(e instanceof Error ? e.message : "تهیه‌ی مرورِ هفتگی با خطا روبه‌رو شد.", 502);
   }
