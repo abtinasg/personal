@@ -2,7 +2,7 @@ import { getServiceClient } from "@/lib/supabase";
 import { ok, bad } from "@/lib/api";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // FAQs change infrequently; revalidate every 5 minutes
 
 /** GET — لیستِ عمومیِ FAQها (بدون احراز هویت). برای help-center داخلِ اپ. */
 export async function GET() {
