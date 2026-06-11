@@ -1,6 +1,7 @@
 import { authed, ok, bad } from "@/lib/api";
 import { guardAI } from "@/lib/aiGuard";
 import { aiText } from "@/lib/openrouter";
+import { getCached, setCached, secondsUntilMidnight } from "@/lib/aiCache";
 
 export const runtime = "nodejs";
 
@@ -23,11 +24,16 @@ const TYPE_FA: Record<string, string> = {
 export async function GET(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
-  const guard = await guardAI(a.db, a.uid, "meal_report");
-  if ("error" in guard) return guard.error;
 
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
+
+  const cacheKey = `meal_report:${a.uid}:${date || "today"}`;
+  const cached = await getCached<object>(a.db, cacheKey);
+  if (cached) return ok(cached);
+
+  const guard = await guardAI(a.db, a.uid, "meal_report");
+  if ("error" in guard) return guard.error;
 
   let mealsQuery = a.db
     .from("meals")
@@ -90,7 +96,9 @@ export async function GET(req: Request) {
       { temperature: 0.5, maxTokens: 500 }
     );
 
-    return ok({ report, consumed, goal });
+    const payload = { report, consumed, goal };
+    await setCached(a.db, cacheKey, payload, secondsUntilMidnight());
+    return ok(payload);
   } catch (e) {
     return bad(e instanceof Error ? e.message : "تهیه‌ی گزارش با خطا روبه‌رو شد.", 502);
   }

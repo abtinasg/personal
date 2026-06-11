@@ -1,7 +1,8 @@
 import { authed, ok, bad } from "@/lib/api";
 import { guardAI } from "@/lib/aiGuard";
 import { aiJSON } from "@/lib/openrouter";
-import { daysAgoISO } from "@/lib/format";
+import { daysAgoISO, todayISO } from "@/lib/format";
+import { getCached, setCached } from "@/lib/aiCache";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,11 @@ type NutritionPlan = {
 export async function GET() {
   const a = await authed();
   if ("error" in a) return a.error;
+
+  const cacheKey = `nutrition:${a.uid}:${todayISO()}`;
+  const cached = await getCached<object>(a.db, cacheKey);
+  if (cached) return ok(cached);
+
   const guard = await guardAI(a.db, a.uid, "coach_nutrition");
   if ("error" in guard) return guard.error;
 
@@ -138,7 +144,7 @@ export async function GET() {
             `الگوی وعده‌ها: ${mealSummary}`,
         },
       ],
-      { temperature: 0.4, maxTokens: 700 }
+      { temperature: 0.4, maxTokens: 480 }
     );
 
     // محدودسازی امن
@@ -153,7 +159,9 @@ export async function GET() {
       tips: (Array.isArray(plan.tips) ? plan.tips : []).map((t) => String(t).slice(0, 120)).filter(Boolean).slice(0, 4),
     };
 
-    return ok({ metrics, plan: safe });
+    const payload = { metrics, plan: safe };
+    await setCached(a.db, cacheKey, payload, 86400);
+    return ok(payload);
   } catch (e) {
     return bad(e instanceof Error ? e.message : "تهیه‌ی برنامه با خطا روبه‌رو شد.", 502);
   }

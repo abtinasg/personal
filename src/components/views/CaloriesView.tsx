@@ -7,6 +7,7 @@ import type { Meal, Profile } from "@/lib/types";
 import { Card, Ring, Sheet, Field, Button, Spinner, EmptyState, Segmented, SectionTitle, IconChip } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 import { AiError } from "@/components/AiError";
+import { AiThinking } from "@/components/AiThinking";
 
 const MEAL_LABELS: Record<string, string> = {
   breakfast: "صبحانه",
@@ -305,7 +306,7 @@ function NutritionPlanSheet({
   return (
     <Sheet open={open} onClose={onClose} title="برنامه‌ی هوشمند تغذیه">
       {loading ? (
-        <div className="py-10 flex justify-center"><Spinner /></div>
+        <AiThinking messages={["دارم مشخصاتت رو پردازش می‌کنم…", "BMI و نیاز کالری رو حساب می‌کنم…", "برنامه‌ی تغذیه رو آماده می‌کنم…", "نزدیکه…"]} />
       ) : editing ? (
         <div className="space-y-3">
           {needs?.length ? (
