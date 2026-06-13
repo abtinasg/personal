@@ -76,7 +76,7 @@ export default function AppChrome({
   const title = TITLES[pathname];
 
   // کاربرِ تازه‌وارد هنوز مشخصاتِ پایه را نداده — تا تمام‌شدنِ انبوردینگ، اپ را پشتِ آن نشان نده.
-  const needsOnboarding = profile != null && !profile.onboarded;
+  const needsOnboarding = profile != null && !profile.onboarded && !isGuest;
 
   return (
     <AppProvider value={{ profile, reloadProfile: loadProfile, refreshKey, username, displayName }}>

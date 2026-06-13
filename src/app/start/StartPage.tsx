@@ -46,7 +46,7 @@ function GuestButton({ children, className = "" }: { children: ReactNode; classN
     setErr(null);
     try {
       await apiSend("/api/auth/guest", "POST");
-      router.push("/coach?chat=1");
+      router.push("/grow?seg=habits");
     } catch (e) {
       // خطا را هرگز بی‌صدا نخور: کاربر باید بفهمد چه شد و کلیک هدر نرود.
       // روی شبکه‌های CGNATِ ایران، ۴۲۹ زیاد رخ می‌دهد؛ پس مستقیم سمتِ ورود با شماره هلش بده.
