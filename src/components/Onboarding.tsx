@@ -6,6 +6,111 @@ import { fa, faDigits, parseNum } from "@/lib/format";
 import { Button, Field, Segmented, Spinner, Ring } from "@/components/ui";
 import { Mascot } from "@/components/Mascot";
 
+/* ─── انبوردینگِ سریعِ مهمان — فقط قد و وزن ──────────────────── */
+
+function guestBmiMessage(bmi: number): string {
+  if (bmi < 18.5) return "باهم وزنت رو می‌آریم بالا 💪";
+  if (bmi < 25)   return "باهم وزنت رو نگه می‌داریم 🌱";
+  if (bmi < 30)   return "باهم کمی سبک‌تر می‌شیم 🌱";
+  return "باهم لاغر می‌کنیم، قدم به قدم 🌱";
+}
+
+export function GuestBmiPrompt({ onDone }: { onDone: () => void }) {
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [showResult, setShowResult] = useState(false);
+
+  const bmi = useMemo(() => {
+    const h = parseNum(height);
+    const w = parseNum(weight);
+    if (!h || !w) return null;
+    return Math.round((w / Math.pow(h / 100, 2)) * 10) / 10;
+  }, [height, weight]);
+
+  const valid = useMemo(() => {
+    const h = parseNum(height);
+    const w = parseNum(weight);
+    return h >= 80 && h <= 250 && w >= 25 && w <= 400;
+  }, [height, weight]);
+
+  if (showResult && bmi != null) {
+    const info = bmiInfo(bmi);
+    return (
+      <Screen>
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 animate-fade-up">
+          <Mascot size={120} pose="cheer" float shadow />
+          <div>
+            <h2 className="text-[24px] font-extrabold tracking-tight leading-tight">
+              {guestBmiMessage(bmi)}
+            </h2>
+            <p className="secondary text-[15px] mt-2 leading-7">
+              از همین امروز، با هم شروع می‌کنیم.
+            </p>
+          </div>
+          <Ring progress={Math.min(1, bmi / 40)} color={info.color} size={160} stroke={15}>
+            <span className="num" style={{ fontSize: 40, color: "var(--ink)" }}>{fa(bmi, 1)}</span>
+            <span className="t-cap mt-1" style={{ color: info.color, fontWeight: 700 }}>{info.label}</span>
+          </Ring>
+        </div>
+        <Button onClick={onDone} className="w-full">بزن بریم</Button>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <div className="flex-1 flex flex-col justify-center animate-fade-up">
+        <div className="text-[40px] leading-none mb-3">📏</div>
+        <h2 className="text-[24px] font-extrabold tracking-tight leading-tight">
+          قد و وزنت چقدره؟
+        </h2>
+        <p className="secondary text-[15px] mt-2 mb-7 leading-7">
+          یه حساب سریع می‌کنیم تا بدونیم از کجا شروع می‌کنیم.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="قد (سانتی‌متر)">
+            <input
+              className="ios-input text-center text-[20px] font-bold"
+              inputMode="numeric"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              placeholder="۱۷۵"
+              autoFocus
+            />
+          </Field>
+          <Field label="وزن (کیلوگرم)">
+            <input
+              className="ios-input text-center text-[20px] font-bold"
+              inputMode="decimal"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="۷۵"
+            />
+          </Field>
+        </div>
+        {bmi != null && (
+          <p className="secondary text-[13px] text-center mt-3">
+            BMI تقریبی: <span className="font-bold" style={{ color: bmiInfo(bmi).color }}>{fa(bmi, 1)}</span>
+            {"  "}({bmiInfo(bmi).label})
+          </p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Button onClick={() => setShowResult(true)} disabled={!valid} className="w-full">
+          حساب کن
+        </Button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="w-full text-center secondary text-[14px] font-semibold py-2 active:opacity-60 transition-opacity"
+        >
+          رد کن ←
+        </button>
+      </div>
+    </Screen>
+  );
+}
+
 /**
  * انبوردینگِ کاربرِ جدید — بعد از اولین ورود نشان داده می‌شود و در چند گامِ کوتاه
  * اسم و مشخصاتِ پایه‌ی بدنی را می‌گیرد، BMI را حساب می‌کند و «برنامه‌ی هوشمندِ
