@@ -16,6 +16,7 @@ export type EventName =
   | "payment_paid"        // پرداخت نهایی و اشتراک/اعتبار فعال شد
   // ── ops ──
   | "otp_closed"          // درخواستِ کد خارج از پنجره‌ی مجاز رد شد
+  | "guest_start_failed"  // ورودِ مهمان شکست خورد (reason: rate_limited | signups_disabled | db_error)
   | "ai_error";           // یک فراخوانیِ هوش مصنوعی خطا داد
 
 /**

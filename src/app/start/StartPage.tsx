@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppIcon } from "@/components/AppIcon";
 import { Mascot } from "@/components/Mascot";
 import { Logo } from "@/components/icons";
+import { apiSend, ApiError } from "@/lib/client";
 import { apiSend } from "@/lib/client";
 
 /* ─── ثوابت ──────────────────────────────────────────────────── */
@@ -38,31 +39,44 @@ function useTrack() {
 function GuestButton({ children, className = "" }: { children: ReactNode; className?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const go = async () => {
     if (busy) return;
     setBusy(true);
+    setErr(null);
     try {
       await apiSend("/api/auth/guest", "POST");
-      router.push("/coach?chat=1");
-    } catch {
+      router.push("/grow?seg=habits");
+    } catch (e) {
+      // خطا را هرگز بی‌صدا نخور: کاربر باید بفهمد چه شد و کلیک هدر نرود.
+      // روی شبکه‌های CGNATِ ایران، ۴۲۹ زیاد رخ می‌دهد؛ پس مستقیم سمتِ ورود با شماره هلش بده.
+      const ae = e as ApiError;
+      setErr(
+        ae?.status === 429
+          ? "ورودِ سریع از این شبکه شلوغه — با شماره موبایل وارد شو 👇"
+          : (ae?.message || "ورود یه لحظه قطع شد؛ دوباره بزن یا با شماره وارد شو 👇")
+      );
       setBusy(false);
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={go}
-      disabled={busy}
-      className={`ios-btn-primary flex items-center justify-center gap-2 disabled:opacity-70 ${className}`}
-    >
-      {busy ? (
-        <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-      ) : (
-        children
-      )}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={go}
+        disabled={busy}
+        className={`ios-btn-primary flex items-center justify-center gap-2 disabled:opacity-70 ${className}`}
+      >
+        {busy ? (
+          <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+        ) : (
+          children
+        )}
+      </button>
+      {err && <p className="w-full text-center text-[13px] leading-6 text-ios-red mt-1.5">{err}</p>}
+    </>
   );
 }
 

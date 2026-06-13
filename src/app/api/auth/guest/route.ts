@@ -29,6 +29,7 @@ export async function POST(req: Request) {
 
   // ── کلیدِ قطعِ ثبت‌نام (و maintenance_mode) ──
   if (!(await isEnabled(db, "signups_enabled"))) {
+    await logEvent(db, "guest_start_failed", { props: { reason: "signups_disabled" } });
     return NextResponse.json(
       { error: "ثبت‌نام موقتاً بسته است. کمی بعد دوباره سر بزن. 🌱", code: "SIGNUPS_DISABLED" },
       { status: 503 }
@@ -47,8 +48,9 @@ export async function POST(req: Request) {
   ]);
 
   if ((lastHour ?? 0) >= GUEST_PER_HOUR || (lastDay ?? 0) >= GUEST_PER_DAY) {
+    await logEvent(db, "guest_start_failed", { props: { reason: "rate_limited" }, ip });
     return NextResponse.json(
-      { error: "تعدادِ ورودِ مهمان از این دستگاه زیاد شد. کمی بعد دوباره امتحان کن یا با شماره وارد شو." },
+      { error: "تعدادِ ورودِ مهمان از این دستگاه زیاد شد. کمی بعد دوباره امتحان کن یا با شماره وارد شو.", code: "GUEST_RATE_LIMITED" },
       { status: 429 }
     );
   }
@@ -63,6 +65,7 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !user) {
+    await logEvent(db, "guest_start_failed", { props: { reason: "db_error" }, ip });
     return NextResponse.json({ error: "خطا در ساختِ کاربرِ مهمان. دوباره تلاش کن." }, { status: 500 });
   }
 

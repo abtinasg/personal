@@ -281,9 +281,21 @@ export default function Onboarding({
         </Button>
       </div>
 
-      <p className="secondary text-[12px] text-center mt-3">
-        گامِ {faDigits(step + 1)} از {faDigits(STEPS)}
-      </p>
+      {step === 0 && (
+        <button
+          type="button"
+          onClick={onDone}
+          className="w-full text-center secondary text-[14px] font-semibold mt-3 py-2 active:opacity-60 transition-opacity"
+        >
+          بزن بریم رایگان ←
+        </button>
+      )}
+
+      {step > 0 && (
+        <p className="secondary text-[12px] text-center mt-3">
+          گامِ {faDigits(step + 1)} از {faDigits(STEPS)}
+        </p>
+      )}
     </Screen>
   );
 }
