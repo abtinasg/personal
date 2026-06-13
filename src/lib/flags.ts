@@ -26,7 +26,7 @@ export type FlagKey =
  * دیتابیس نزنند. تغییرِ فلگ از همان اینستنس کش را فوراً باطل می‌کند؛ اینستنس‌های
  * دیگر حداکثر ۳۰ ثانیه بعد هماهنگ می‌شوند — برای ابزارِ یک‌نفره کافی است.
  */
-const TTL_MS = 30_000;
+const TTL_MS = 5_000;
 let cache: { at: number; map: Map<string, Flag> } | null = null;
 
 function rowToFlag(r: Record<string, unknown>): Flag {
