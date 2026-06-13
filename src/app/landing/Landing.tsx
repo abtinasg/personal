@@ -94,14 +94,14 @@ const ledger: React.CSSProperties = {
 type Feature = { icon: string; title: string; desc: string; color: string };
 
 const FEATURES: Feature[] = [
-  { icon: "star", color: "#8267f2", title: "هویت‌ها", desc: "آدمی که می‌خواهی بشوی را انتخاب کن؛ بعد هر کارِ کوچک، یک رأی به اوست." },
-  { icon: "flag", color: "#5b76f0", title: "ماموریت‌ها", desc: "هدفِ بزرگت را به ماموریت‌های قابل‌انجام بشکن؛ هوش مصنوعی قدم‌ها را می‌چیند." },
-  { icon: "repeat", color: "#2cb8cf", title: "عادت‌های اتمی", desc: "عادت‌های کوچکِ روزانه، با حلقه‌های پیشرفت و روزهای پیاپی که نمی‌خواهی بشکنی." },
-  { icon: "flame", color: "#fb9a5b", title: "کالریِ هوشمند", desc: "وعده‌ات را با یک عکس یا یک جمله بنویس؛ کالری و درشت‌مغذی‌ها خودکار تخمین زده می‌شود." },
+  { icon: "star", color: "#8267f2", title: "هویت‌ها", desc: "اول انتخاب کن چه کسی می‌خواهی باشی؛ از آن به بعد، هر کارِ کوچک یک رأی به اوست." },
+  { icon: "flag", color: "#5b76f0", title: "ماموریت‌ها", desc: "هدفِ بزرگ را بگو، نقشهٔ راه بگیر؛ جوانه آن را به قدم‌های قابل‌انجام می‌شکند." },
+  { icon: "repeat", color: "#2cb8cf", title: "عادت‌های اتمی", desc: "عادت‌های کوچکِ روزانه، با حلقه‌های پیشرفت و زنجیره‌ای از روزها که دلت نمی‌آید بشکنی." },
+  { icon: "flame", color: "#fb9a5b", title: "کالریِ هوشمند", desc: "از غذایت عکس بگیر یا یک جمله بنویس؛ کالری و درشت‌مغذی‌ها همان لحظه تخمین زده می‌شود." },
   { icon: "wallet", color: "#6a8bff", title: "بودجه و خرج", desc: "درآمد، هزینه و پس‌اندازت را ساده دنبال کن و سرِ بودجه‌ی ماهانه بمان." },
-  { icon: "heart", color: "#fb7fa0", title: "سلامتی", desc: "آب، وزن، قدم و خواب — روندِ سلامتت همیشه در یک نگاه." },
-  { icon: "strength", color: "#a96ff0", title: "برنامه‌ی ورزشی", desc: "تمرینِ هوازی و قدرتیِ امروزت را مربیِ هوشمند می‌چیند و باهات پیش می‌آید." },
-  { icon: "gift", color: "#f5c451", title: "جایزه و انگیزه", desc: "با روزهای پیاپیِ عالی، جایزه‌های واقعی برای خودت باز کن. انگیزه، بازی‌گونه." },
+  { icon: "heart", color: "#fb7fa0", title: "سلامتی", desc: "آب، وزن، قدم و خواب — روندِ تنت، همیشه در یک نگاه." },
+  { icon: "strength", color: "#a96ff0", title: "برنامه‌ی ورزشی", desc: "جوانه تمرینِ امروزت را متناسب با سطح و هدفت می‌چیند — از گرم‌کردن تا کشش." },
+  { icon: "gift", color: "#f5c451", title: "جایزه و انگیزه", desc: "برای خودت جایزه تعریف کن و با روزهای پیاپیِ خوب بازش کن. انگیزه، بازی‌گونه." },
 ];
 
 const STEPS: { icon: string; title: string; desc: string; color: string }[] = [
@@ -112,17 +112,17 @@ const STEPS: { icon: string; title: string; desc: string; color: string }[] = [
 
 const COACH_POINTS: { icon: string; text: string }[] = [
   { icon: "sun", text: "بریفینگِ صبحگاهی، هر روز" },
-  { icon: "compass", text: "چتِ مربی، هر وقت گیر کردی" },
+  { icon: "compass", text: "گفتگو با جوانه، هر وقت گیر کردی" },
   { icon: "flame", text: "تخمینِ کالریِ عکس و متن" },
   { icon: "strength", text: "برنامه‌ی تمرینِ روزانه" },
   { icon: "chart", text: "مرورِ هوشمندِ هفتگی" },
 ];
 
 const LEDGER_STATS: { value: string; label: string }[] = [
-  { value: "×۳۷٫۸", label: "رشد در یک سال" },
-  { value: "+۱۰", label: "ابزار، در یک اپ" },
-  { value: "۰", label: "رمزِ عبور" },
   { value: "۱٪", label: "بهتر، هر روز" },
+  { value: "×۳۷٫۸", label: "ریاضیِ ۳۶۵ روزِ ۱٪" },
+  { value: "+۱۰", label: "ابزار، در یک اپ" },
+  { value: "۰", label: "رمزِ عبور — فقط پسکی" },
 ];
 
 /* صفحه ───────────────────────────────────────────────────── */
@@ -205,8 +205,9 @@ function Hero() {
           </h1>
 
           <p className="secondary text-[17px] sm:text-[19px] leading-9 mt-7 max-w-xl mx-auto lg:mx-0 animate-fade-up [animation-delay:160ms]">
-            «امروز» یک قدمِ کوچکِ روزانه به سمتِ آدمی است که می‌خواهی بشوی. عمرت جمعِ همین
-            «امروز»هاست — عادت‌های اتمی، کالری، بودجه و سلامتی، همه یک‌جا، با یک مربیِ همیشه‌همراه.
+            آدمی که می‌خواهی بشوی، یک‌شبه ساخته نمی‌شود؛ از جمعِ همین «امروز»ها ساخته می‌شود.
+            عادت‌ها، تغذیه، بودجه و سلامتی‌ات را یک‌جا ببین — و بگذار «جوانه»، مربیِ هوشمندت،
+            هر روز قدمِ بعدی را روشن کند.
           </p>
 
           <div className="mt-9 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3 animate-fade-up [animation-delay:240ms]">
@@ -223,7 +224,7 @@ function Hero() {
               <AppIcon name="check" size={15} className="text-ios-green" /> نصب در کمتر از یک دقیقه
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <AppIcon name="check" size={15} className="text-ios-green" /> رایگان، بدونِ کارت بانکی
+              <AppIcon name="check" size={15} className="text-ios-green" /> شروعِ رایگان، بدونِ کارت بانکی
             </span>
             <span className="inline-flex items-center gap-1.5">
               <AppIcon name="check" size={15} className="text-ios-green" /> ورودِ بی‌رمز با پسکی
@@ -289,7 +290,7 @@ function HeroPreview() {
       <div className="float-card absolute -top-4 -right-3 sm:-right-7 px-4 py-2.5 -rotate-[4deg] hidden sm:flex items-center gap-2">
         <AppIcon name="chart" size={18} className="text-ios-green" />
         <span className="font-display text-[18px] font-bold leading-none">۳۷٫۸×</span>
-        <span className="secondary text-[12px]">در سال</span>
+        <span className="secondary text-[12px]">اگر هر روز ۱٪</span>
       </div>
     </div>
   );
@@ -356,8 +357,9 @@ function Compound() {
                 می‌کند.
               </h2>
               <p className="secondary text-[17px] leading-9 mt-5 max-w-md">
-                اگر هر روز فقط یک‌درصد بهتر شوی، در پایانِ سال تقریباً ۳۷ برابرِ امروزت می‌شوی.
-                و اگر هر روز یک‌درصد بدتر؟ تقریباً به صفر می‌رسی. تفاوت، در همان یک‌درصدهای روزانه است.
+                این وعدهٔ تبلیغاتی نیست؛ ریاضی است: ۱٫۰۱ به توانِ ۳۶۵ می‌شود ۳۷٫۸. هر روز فقط
+                یک‌درصد بهتر شوی، پایانِ سال ۳۷٫۸ برابرِ امروزت هستی — و هر روز یک‌درصد بدتر،
+                تقریباً صفر. تمامِ کارِ «امروز» نگه‌داشتنِ همان یک‌درصدِ روزانه است.
               </p>
 
               <div className="mt-7 grid grid-cols-2 gap-3 max-w-md">
@@ -572,11 +574,12 @@ function Coach() {
                 <AppIcon name="sparkles" size={15} /> هوش مصنوعی
               </span>
               <h2 className="font-display text-[40px] sm:text-[54px] font-bold leading-[0.98] mt-5">
-                یک مربیِ همیشه‌همراه
+                آشنا شو: «جوانه»
               </h2>
               <p className="text-[17px] leading-9 mt-4 text-white/90 max-w-md">
-                «امروز» فقط ثبت‌کننده نیست؛ مثلِ یک مربیِ واقعی هر روز کنارت است — جلوی
-                پایت یک قدمِ بعدیِ روشن می‌گذارد و وقتی گیر کردی، باهات حرف می‌زند.
+                جوانه مربیِ هوشمندِ «امروز» است. صبح با یک بریفینگِ کوتاه روزت را می‌چیند،
+                وقتی گیر می‌کنی پای حرفت می‌نشیند و آخرِ هفته نشانت می‌دهد کجای مسیری.
+                نه قضاوت می‌کند، نه سرزنش — فقط قدمِ بعدی.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -674,7 +677,7 @@ function FinalCTA() {
               همین امروز، اولین قدمت را بردار
             </h2>
             <p className="text-[17px] sm:text-[19px] text-white/90 mt-4 max-w-lg mx-auto leading-9">
-              بهترین روزِ شروع، همین امروز است. در کمتر از یک دقیقه واردِ مسیرِ شدنت شو.
+              بهترین روزِ شروع، همین امروز است. کمتر از یک دقیقه تا اولین رأی به آدمی که می‌خواهی بشوی.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <InstallButton tone="white" className="text-[17px] !px-7 shadow-lg">
@@ -994,8 +997,8 @@ function Install() {
                 «{BRAND}» را روی گوشی‌ات نصب کن
               </h2>
               <p className="secondary text-[17px] leading-9 mt-5 max-w-md mx-auto lg:mx-0">
-                نه استوری لازم است، نه دانلودِ سنگین. یک ضربه و اپ روی صفحهٔ خانه‌ات می‌نشیند —
-                تا یادآوریِ هر روزه، فقط یک لمس فاصله داشته باشد.
+                نه اپ‌استور لازم است، نه دانلودِ سنگین. یک ضربه و اپ روی صفحهٔ خانه‌ات می‌نشیند —
+                تا قدمِ هر روزه، فقط یک لمس فاصله داشته باشد.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
                 <InstallButton tone="gradient" className="w-full sm:w-auto shadow-glow text-[17px] !px-7">
@@ -1040,8 +1043,8 @@ function Install() {
 
 const FAQS: { q: string; a: string }[] = [
   { q: "چقدر طول می‌کشد تا شروع کنم؟", a: "کمتر از یک دقیقه. اپ را نصب کن، با Face ID یا Touch ID وارد شو و همان لحظه اولین رأیت را به آدمی که می‌خواهی بشوی بده." },
-  { q: "رایگان است؟", a: "بله. رایگان شروع کن — بدونِ کارت بانکی و بدونِ تعهد." },
-  { q: "حتماً باید نصبش کنم یا در مرورگر هم کار می‌کند؟", a: "هر دو. در مرورگر هم کامل کار می‌کند، اما نصب تجربه‌ای تمام‌صفحه، سریع‌تر و همیشه‌دمِ‌دست می‌دهد و یادآوری‌ها دمِ‌دست‌ترند." },
+  { q: "رایگان است؟", a: "ثبت و پیگیریِ روزانه — عادت‌ها، کالری، بودجه و سلامتی — برای همیشه رایگان است و کارت بانکی هم نمی‌خواهد. گفتگو با جوانه روزی ۵ بار رایگان است؛ اگر بیشتر خواستی، اشتراکِ پلاس و پرو هست." },
+  { q: "حتماً باید نصبش کنم یا در مرورگر هم کار می‌کند؟", a: "هر دو. در مرورگر هم کامل کار می‌کند؛ اما نسخهٔ نصب‌شده تمام‌صفحه و سریع‌تر است و یادآوری‌ها بهتر به دستت می‌رسد." },
   { q: "روی آیفون هم نصب می‌شود؟", a: "بله. در سافاری دکمهٔ هم‌رسانی را بزن و «افزودن به صفحهٔ خانه» را انتخاب کن — اپ مثلِ یک برنامهٔ واقعی باز می‌شود." },
   { q: "داده‌هایم امن است؟", a: "ورود فقط با پسکی است؛ هیچ رمزی برای لو‌رفتن وجود ندارد و داده‌هایت خصوصی روی حسابِ خودت می‌ماند." },
   { q: "اگر یک روز را جا انداختم چه؟", a: "اشکالی ندارد. هدف، کمال نیست؛ تداوم است. مهم این است که فردا دوباره برگردی و یک رأیِ کوچکِ دیگر بدهی." },
