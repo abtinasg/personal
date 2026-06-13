@@ -10,7 +10,7 @@ import { Icon } from "@/components/icons";
 import { Sheet, Field, MoneyInput, Button, Spinner, Chevron } from "@/components/ui";
 import { AppProvider } from "@/components/AppContext";
 import QuickCapture from "@/components/QuickCapture";
-import Onboarding from "@/components/Onboarding";
+import Onboarding, { GuestBmiPrompt } from "@/components/Onboarding";
 import HelpCenter from "@/components/HelpCenter";
 import { enablePush, disablePush, isPushEnabled, isPushSupported } from "@/lib/pushClient";
 
@@ -54,6 +54,10 @@ export default function AppChrome({
   const [captureOpen, setCaptureOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [guestBmiDone, setGuestBmiDone] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !!localStorage.getItem("guest_bmi_shown");
+  });
 
   const loadProfile = useCallback(async () => {
     try {
@@ -75,8 +79,8 @@ export default function AppChrome({
   const isSub = SUB_ROUTES.has(pathname);
   const title = TITLES[pathname];
 
-  // کاربرِ تازه‌وارد هنوز مشخصاتِ پایه را نداده — تا تمام‌شدنِ انبوردینگ، اپ را پشتِ آن نشان نده.
   const needsOnboarding = profile != null && !profile.onboarded && !isGuest;
+  const needsGuestBmi = isGuest && !guestBmiDone;
 
   return (
     <AppProvider value={{ profile, reloadProfile: loadProfile, refreshKey, username, displayName }}>
@@ -86,6 +90,15 @@ export default function AppChrome({
           onDone={() => {
             loadProfile();
             router.refresh();
+          }}
+        />
+      )}
+      {needsGuestBmi && (
+        <GuestBmiPrompt
+          onDone={() => {
+            localStorage.setItem("guest_bmi_shown", "1");
+            setGuestBmiDone(true);
+            router.push("/grow?seg=habits");
           }}
         />
       )}
