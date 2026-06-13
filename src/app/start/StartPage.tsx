@@ -7,6 +7,7 @@ import { AppIcon } from "@/components/AppIcon";
 import { Mascot } from "@/components/Mascot";
 import { Logo } from "@/components/icons";
 import { apiSend, ApiError } from "@/lib/client";
+import { apiSend } from "@/lib/client";
 
 /* ─── ثوابت ──────────────────────────────────────────────────── */
 
