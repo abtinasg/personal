@@ -5,10 +5,13 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   const a = await authed();
   if ("error" in a) return a.error;
-  const from = new URL(req.url).searchParams.get("from");
+  const { searchParams } = new URL(req.url);
+  const from = searchParams.get("from");
+  const limit = Math.min(Number(searchParams.get("limit")) || 200, 500);
 
   let q = a.db.from("moods").select("*").eq("user_id", a.uid).order("recorded_on", { ascending: false });
   if (from) q = q.gte("recorded_on", from);
+  q = q.limit(limit);
 
   const { data, error } = await q;
   if (error) return bad(error.message, 500);

@@ -7,9 +7,11 @@ export async function GET(req: Request) {
   if ("error" in a) return a.error;
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
+  const limit = Math.min(Number(searchParams.get("limit")) || 200, 500);
 
   let q = a.db.from("meals").select("*").eq("user_id", a.uid).order("created_at", { ascending: false });
   if (date) q = q.eq("eaten_on", date);
+  q = q.limit(limit);
 
   const { data, error } = await q;
   if (error) return bad(error.message, 500);

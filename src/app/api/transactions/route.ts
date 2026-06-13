@@ -8,6 +8,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const limit = Math.min(Number(searchParams.get("limit")) || 200, 500);
 
   let q = a.db
     .from("transactions")
@@ -17,6 +18,7 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: false });
   if (from) q = q.gte("occurred_on", from);
   if (to) q = q.lte("occurred_on", to);
+  q = q.limit(limit);
 
   const { data, error } = await q;
   if (error) return bad(error.message, 500);
