@@ -201,6 +201,7 @@ create table if not exists public.mission_milestones (
   created_at  timestamptz not null default now()
 );
 create index if not exists milestones_mission_idx on public.mission_milestones(mission_id, order_index);
+create index if not exists milestones_user_idx on public.mission_milestones(user_id);
 
 create table if not exists public.mission_habits (
   mission_id uuid not null references public.missions(id) on delete cascade,
@@ -356,3 +357,9 @@ begin
     values (p_user, -p_cost, p_reason, new_bal);
   return new_bal;
 end $$;
+
+-- ============================================================
+--  یادداشت: جدول push_subscriptions در این فایل تعریف نشده؛
+--  در supabase/migrations/011_push.sql تعریف شده و ایندکس
+--  push_subs_user_idx ON push_subscriptions(user_id) آنجا وجود دارد.
+-- ============================================================
