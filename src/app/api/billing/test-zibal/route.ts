@@ -9,6 +9,12 @@ export async function GET() {
   const merchantId = process.env.ZIBAL_MERCHANT_ID;
   const isSandbox = process.env.ZIBAL_SANDBOX === "1";
 
+  // IP خروجی سرور — این همانی است که زیبال می‌بیند
+  const outgoingIp = await fetch("https://api.ipify.org?format=json")
+    .then((r) => r.json())
+    .then((j) => j.ip as string)
+    .catch(() => null);
+
   try {
     const testRes = await fetch("https://gateway.zibal.ir/v1/request", {
       method: "POST",
@@ -24,6 +30,7 @@ export async function GET() {
     const json = await testRes.json().catch(() => null);
 
     return ok({
+      serverOutgoingIp: outgoingIp,
       merchantIdSet: !!merchantId,
       isSandbox,
       statusCode: testRes.status,
@@ -31,9 +38,9 @@ export async function GET() {
       ok: testRes.ok,
     });
   } catch (e) {
-    return bad(
-      `خطاِ شبکهٔ زیبال: ${e instanceof Error ? e.message : String(e)}`,
-      502
-    );
+    return ok({
+      serverOutgoingIp: outgoingIp,
+      error: `خطاِ شبکهٔ زیبال: ${e instanceof Error ? e.message : String(e)}`,
+    });
   }
 }

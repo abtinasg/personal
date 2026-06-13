@@ -1,3 +1,5 @@
+import { logError, logWarn, errDetail } from "@/lib/log";
+
 // base URL ارائه‌دهنده‌ی AI (هر سرویسِ OpenAI-compatible: OpenRouter، AvalAI، Arvan Gateway و …).
 // پیش‌فرض OpenRouter است؛ روی پروداکشنِ آروان به gateway آروان سوییچ می‌کنیم تا از فیلترینگ رد نشویم.
 // کاربر می‌تونه /v1 رو بذاره یا نذاره — هر دو حالت کار می‌کنه.
@@ -42,10 +44,18 @@ async function call(
     seed?: number;
     timeoutMs?: number;
     model?: string;
+    /** نامِ فیچرِ صدازننده (coach_chat، meal_estimate، …) — برای فیلترکردنِ لاگ. */
+    tag?: string;
   } = {}
 ): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const model = opts.model ?? (process.env.OPENROUTER_MODEL || DEFAULT_MODEL);
+  const started = performance.now();
+  // زمینه‌ی مشترکِ همه‌ی لاگ‌های این فراخوانی — بدونش نمی‌شود فهمید کدام
+  // فیچر/مدل مشکل دارد.
+  const ctx = () => ({ model, tag: opts.tag, latencyMs: Math.round(performance.now() - started) });
 
   let res: Response;
   try {
@@ -58,7 +68,7 @@ async function call(
         "X-Title": "Yek-Darsad",
       },
       body: JSON.stringify({
-        model: opts.model ?? (process.env.OPENROUTER_MODEL || DEFAULT_MODEL),
+        model,
         messages,
         temperature: opts.temperature ?? 0.2,
         max_tokens: opts.maxTokens ?? 800,
@@ -70,8 +80,11 @@ async function call(
     });
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
+      void logError("ai", "timeout", { detail: { ...ctx(), timeoutMs } });
       throw new Error("هوش مصنوعی به‌موقع پاسخ نداد. لطفاً دوباره تلاش کن.");
     }
+    // خطای شبکه (DNS/فیلترینگ/قطعی) — شایع‌ترین دلیلِ «AI کار نمی‌کند» روی سرورِ ایران.
+    void logError("ai", "network_error", { detail: { ...ctx(), ...errDetail(e) } });
     throw e;
   } finally {
     clearTimeout(timeoutId);
@@ -79,13 +92,16 @@ async function call(
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    console.error("[openrouter] provider error", res.status, detail.slice(0, 500));
+    void logError("ai", "provider_error", {
+      detail: { ...ctx(), status: res.status, body: detail.slice(0, 300) },
+    });
     throw new Error("سرویسِ هوش مصنوعی الان در دسترس نیست. لطفاً دوباره تلاش کن.");
   }
 
   const data = await res.json().catch(() => null);
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) {
+    void logError("ai", "invalid_response", { detail: ctx() });
     throw new Error("پاسخ نامعتبر از هوش مصنوعی دریافت شد.");
   }
   return content;
@@ -108,6 +124,11 @@ function raceWithFallback(
 
     const timer = setTimeout(() => {
       if (settled) return;
+      // اصلی کُند است — fallback موازی استارت می‌خورَد. اگر این زیاد تکرار شود
+      // یعنی مدل/مسیرِ اصلی مشکل دارد.
+      void logWarn("ai", "fallback_slow_primary", {
+        detail: { tag: opts?.tag, fallback: FALLBACK_MODEL, afterMs: FALLBACK_DELAY_MS },
+      });
       call(messages, { ...opts, model: FALLBACK_MODEL }).then(win).catch(lose);
     }, FALLBACK_DELAY_MS);
 
@@ -117,6 +138,9 @@ function raceWithFallback(
         // اصلی شکست خورد — فوری fallback را استارت می‌زنیم (اگر هنوز شروع نشده)
         clearTimeout(timer);
         if (settled) return;
+        void logWarn("ai", "fallback_after_error", {
+          detail: { tag: opts?.tag, fallback: FALLBACK_MODEL, ...errDetail(e) },
+        });
         call(messages, { ...opts, model: FALLBACK_MODEL }).then(win).catch(lose);
       });
   });
@@ -125,7 +149,7 @@ function raceWithFallback(
 /** یک پاسخ متنی آزاد از مدل می‌گیرد. */
 export async function aiText(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number }
+  opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number; tag?: string }
 ): Promise<string> {
   return raceWithFallback(messages, opts);
 }
@@ -133,10 +157,18 @@ export async function aiText(
 /** از مدل می‌خواهد فقط JSON بدهد و آن را parse می‌کند. */
 export async function aiJSON<T>(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number }
+  opts?: { temperature?: number; maxTokens?: number; seed?: number; timeoutMs?: number; tag?: string }
 ): Promise<T> {
   const raw = await raceWithFallback(messages, { ...opts, json: true });
-  return parseJSON<T>(raw);
+  try {
+    return parseJSON<T>(raw);
+  } catch (e) {
+    // مدل JSON قول داده بود ولی چیزِ دیگری داد — برای دیباگ، ابتدای خروجی را نگه می‌داریم.
+    void logError("ai", "json_parse_failed", {
+      detail: { tag: opts?.tag, snippet: raw.slice(0, 200) },
+    });
+    throw e;
+  }
 }
 
 /**
@@ -146,11 +178,20 @@ export async function aiJSON<T>(
  */
 export async function* streamText(
   messages: AIMessage[],
-  opts?: { temperature?: number; maxTokens?: number; timeoutMs?: number }
+  opts?: { temperature?: number; maxTokens?: number; timeoutMs?: number; tag?: string }
 ): AsyncGenerator<string> {
   const controller = new AbortController();
   // timeout فقط تا دریافتِ اولین بایت از سرور — بعد از آن connection زنده است
-  const timeoutId = setTimeout(() => controller.abort(), opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const started = performance.now();
+  const ctx = () => ({
+    model,
+    tag: opts?.tag,
+    stream: true,
+    latencyMs: Math.round(performance.now() - started),
+  });
 
   let res: Response;
   try {
@@ -163,7 +204,7 @@ export async function* streamText(
         "X-Title": "Yek-Darsad",
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+        model,
         messages,
         temperature: opts?.temperature ?? 0.7,
         max_tokens: opts?.maxTokens ?? 400,
@@ -173,8 +214,10 @@ export async function* streamText(
     });
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
+      void logError("ai", "timeout", { detail: { ...ctx(), timeoutMs } });
       throw new Error("هوش مصنوعی به‌موقع پاسخ نداد. لطفاً دوباره تلاش کن.");
     }
+    void logError("ai", "network_error", { detail: { ...ctx(), ...errDetail(e) } });
     throw e;
   } finally {
     clearTimeout(timeoutId);
@@ -182,7 +225,9 @@ export async function* streamText(
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    console.error("[openrouter] stream provider error", res.status, detail.slice(0, 500));
+    void logError("ai", "provider_error", {
+      detail: { ...ctx(), status: res.status, body: detail.slice(0, 300) },
+    });
     throw new Error("سرویسِ هوش مصنوعی الان در دسترس نیست. لطفاً دوباره تلاش کن.");
   }
 

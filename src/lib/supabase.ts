@@ -1,4 +1,9 @@
 import { createPgClient, type PgClient } from "@/lib/pg";
+// سایداِفکت: لاگر پلِ سراسری‌اش (globalThis.__appLogError) را ثبت می‌کند تا
+// instrumentation.ts بدونِ importِ مستقیم به آن دسترسی داشته باشد. این import
+// دور (cycle) دارد ولی امن است — log.ts فقط در زمانِ صدازدن از getServiceClient
+// استفاده می‌کند، نه هنگامِ eval.
+import "@/lib/log";
 
 let cached: PgClient | null = null;
 

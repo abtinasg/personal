@@ -106,7 +106,7 @@ export async function POST(req: Request) {
         },
         ...history,
       ],
-      { temperature: 0.6, maxTokens: 450 }
+      { temperature: 0.6, maxTokens: 450, tag: "coach_invest" }
     );
     return ok({ reply: reply.trim() });
   } catch (e) {

@@ -29,6 +29,14 @@ async function handle(req: Request) {
   }
 
   const db = getServiceClient();
+
+  // نگه‌داریِ app_logs — ردیف‌های قدیمی‌تر از ۱۴ روز پاک می‌شوند تا جدول بی‌نهایت
+  // بزرگ نشود. ارزان است (ایندکسِ created_at) و best-effort؛ سوار بر همین کرون
+  // تا کارِ زمان‌بندیِ جدیدی لازم نباشد.
+  await db
+    .query("delete from public.app_logs where created_at < now() - interval '14 days'")
+    .catch(() => {});
+
   const budget = await getFlag(db, "ai_daily_budget");
   const limitToman = Number(budget?.value?.toman ?? 0) || 0;
 

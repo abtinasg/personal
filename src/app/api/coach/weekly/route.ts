@@ -172,7 +172,7 @@ export async function GET(req: Request) {
         },
         { role: "user", content: factLines },
       ],
-      { temperature: 0.6, maxTokens: 380 }
+      { temperature: 0.6, maxTokens: 380, tag: "coach_weekly" }
     );
 
     const payload = {
