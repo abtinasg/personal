@@ -40,7 +40,7 @@ export async function GET() {
         },
         { role: "user", content: snap.text },
       ],
-      { temperature: 0.7, maxTokens: 150 }
+      { temperature: 0.7, maxTokens: 150, tag: "coach_briefing" }
     );
     const payload = { briefing: briefing.trim(), hasData: true };
     await setCached(a.db, cacheKey, payload, secondsUntilMidnight());

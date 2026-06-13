@@ -177,7 +177,7 @@ async function generateWorkoutAsync(uid: string, jobId: string, today: string) {
         },
       ],
       // timeout طولانی‌تر چون هیچ پراکسی‌ای این connection را نمی‌بندد
-      { temperature: 0.5, maxTokens: 1200, timeoutMs: 55_000 }
+      { temperature: 0.5, maxTokens: 1200, timeoutMs: 55_000, tag: "coach_workout" }
     );
 
     const plan = sanitize(raw, today);

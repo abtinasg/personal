@@ -93,7 +93,7 @@ export async function GET(req: Request) {
             `وعده‌های امروز:\n${lines}`,
         },
       ],
-      { temperature: 0.5, maxTokens: 500 }
+      { temperature: 0.5, maxTokens: 500, tag: "meal_report" }
     );
 
     const payload = { report, consumed, goal };

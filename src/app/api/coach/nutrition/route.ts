@@ -144,7 +144,7 @@ export async function GET() {
             `الگوی وعده‌ها: ${mealSummary}`,
         },
       ],
-      { temperature: 0.4, maxTokens: 480 }
+      { temperature: 0.4, maxTokens: 480, tag: "coach_nutrition" }
     );
 
     // محدودسازی امن

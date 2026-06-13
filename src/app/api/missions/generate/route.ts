@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         },
         { role: "user", content: goal },
       ],
-      { temperature: 0.6, maxTokens: 1100 }
+      { temperature: 0.6, maxTokens: 1100, tag: "mission_generate" }
     );
 
     // پاکسازی و محدودسازی

@@ -6,6 +6,7 @@ import { streamText, type AIMessage } from "@/lib/openrouter";
 import { getCachedSnapshot, refreshSnapshot } from "@/lib/coach";
 import type { getServiceClient } from "@/lib/supabase";
 import { captureFromText, captureMealFromImage, looksLikeIntake, type SavedItem } from "@/lib/capture";
+import { logError, errDetail } from "@/lib/log";
 
 type DB = ReturnType<typeof getServiceClient>;
 
@@ -36,8 +37,10 @@ async function runCapture(
       const res = await captureFromText(db, uid, lastUser);
       return res?.saved ?? [];
     }
-  } catch {
-    /* best-effort — capture نباید چت را بشکند */
+  } catch (e) {
+    // best-effort — capture نباید چت را بشکند، ولی شکستش هم نباید نامرئی بماند
+    // (کاربر می‌گوید «غذام ثبت نشد» و ما هیچ ردی نداریم).
+    void logError("capture", "chat_capture_failed", { userId: uid, detail: errDetail(e) });
   }
   return [];
 }
@@ -134,13 +137,18 @@ export async function POST(req: Request) {
       background.push(refreshSnapshot(a.db, a.uid).catch(() => {}));
 
       try {
-        for await (const token of streamText(messages, { temperature: 0.7, maxTokens: 400 })) {
+        for await (const token of streamText(messages, { temperature: 0.7, maxTokens: 400, tag: "coach_chat" })) {
           if (ttftMs < 0) ttftMs = performance.now() - t0; // اولین توکن رسید
           controller.enqueue(sse("token", token));
         }
         controller.enqueue(sse("done", {}));
       } catch (e) {
         const msg = e instanceof Error ? e.message : "مربی الان نتونست جواب بده.";
+        // این یعنی کاربر واقعاً خطا دید (نه fallback و نه retry) — مهم‌ترین سیگنال.
+        void logError("ai", "chat_stream_failed", {
+          userId: a.uid,
+          detail: { gotFirstToken: ttftMs >= 0, ...errDetail(e) },
+        });
         controller.enqueue(sse("error", { message: msg }));
       } finally {
         // اطمینان از پایانِ side-effectها قبل از بستنِ استریم تا هیچ نوشتنی گم نشود.

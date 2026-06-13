@@ -29,13 +29,14 @@ const TABLE_LABELS: Record<string, string> = {
   purchase_goals: "اهداف خرید",
 };
 
-type Tab = "dashboard" | "tickets" | "controls" | "stats" | "tables" | "users";
+type Tab = "dashboard" | "tickets" | "controls" | "logs" | "stats" | "tables" | "users";
 
 /** هر تب چه مجوزی لازم دارد (کمترین‌دسترسی). */
 const TAB_CAP: Record<Tab, Capability> = {
   dashboard: "view_admin",
   tickets: "handle_tickets",
   controls: "manage_flags",
+  logs: "view_admin",
   stats: "view_admin",
   tables: "view_admin",
   users: "view_admin",
@@ -45,6 +46,7 @@ const TAB_LABEL: Record<Tab, string> = {
   dashboard: "داشبورد",
   tickets: "تیکت‌ها",
   controls: "کنترل",
+  logs: "لاگ‌ها",
   stats: "آمار",
   tables: "جدول‌ها",
   users: "کاربران",
@@ -97,10 +99,127 @@ export default function AdminView() {
       {activeTab === "dashboard" && <AdminDashboardView />}
       {activeTab === "tickets" && <AdminTicketsView />}
       {activeTab === "controls" && <AdminControlsView />}
+      {activeTab === "logs" && <LogsTab />}
       {activeTab === "stats" && <StatsTab />}
       {activeTab === "tables" && <TablesTab canDelete={caps.has("manage_data")} />}
       {activeTab === "users" && (
         <UsersTab canDelete={caps.has("manage_users")} canManageRoles={caps.has("manage_roles")} />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- لاگ‌ها ---------------- */
+
+type AppLog = {
+  id: string;
+  level: "error" | "warn" | "info";
+  scope: string;
+  event: string;
+  message: string | null;
+  detail: Record<string, unknown> | null;
+  user_id: string | null;
+  created_at: string;
+};
+
+const LEVEL_FA: Record<string, string> = { error: "خطا", warn: "هشدار", info: "اطلاع" };
+const LEVEL_COLOR: Record<string, string> = {
+  error: "var(--danger,#ff453a)",
+  warn: "#ff9f0a",
+  info: "var(--blue,#0a84ff)",
+};
+const SCOPE_FA: Record<string, string> = {
+  ai: "هوش مصنوعی",
+  server: "سرور",
+  auth: "ورود",
+  sms: "پیامک",
+  billing: "پرداخت",
+  push: "نوتیف",
+  capture: "ثبت خودکار",
+  cron: "کرون",
+};
+
+/** «چرا اپ کار نمی‌کند؟» — خطاها و هشدارهای ثبت‌شده در app_logs با فیلتر. */
+function LogsTab() {
+  const [logs, setLogs] = useState<AppLog[] | null>(null);
+  const [level, setLevel] = useState<"" | "error" | "warn" | "info">("");
+  const [scope, setScope] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLogs(null);
+    const qs = new URLSearchParams({ limit: "100" });
+    if (level) qs.set("level", level);
+    if (scope) qs.set("scope", scope);
+    fetch(`/api/admin/logs?${qs}`)
+      .then((r) => r.json())
+      .then((d) => setLogs(d.logs ?? []))
+      .catch(() => setLogs([]));
+  }, [level, scope]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <Segmented<"" | "error" | "warn" | "info">
+          value={level}
+          onChange={setLevel}
+          options={[
+            { value: "", label: "همه" },
+            { value: "error", label: "خطا" },
+            { value: "warn", label: "هشدار" },
+            { value: "info", label: "اطلاع" },
+          ]}
+        />
+        <button onClick={load} className="ios-btn-ghost shrink-0 text-[13px]">
+          تازه‌سازی
+        </button>
+      </div>
+      <select value={scope} onChange={(e) => setScope(e.target.value)} className="ios-input mb-4 w-full">
+        <option value="">همه‌ی بخش‌ها</option>
+        {Object.entries(SCOPE_FA).map(([k, fa]) => (
+          <option key={k} value={k}>
+            {fa}
+          </option>
+        ))}
+      </select>
+
+      {!logs ? (
+        <Spinner className="mt-10 block mx-auto" />
+      ) : logs.length === 0 ? (
+        <EmptyState icon="inbox" title="لاگی نیست" sub="هیچ خطایی ثبت نشده — خبرِ خوبیه 🌱" />
+      ) : (
+        <div className="space-y-2">
+          {logs.map((l) => (
+            <Card key={l.id} onClick={() => setOpenId(openId === l.id ? null : l.id)} className="cursor-pointer">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+                    style={{ background: LEVEL_COLOR[l.level] ?? "#8e8e93" }}
+                  >
+                    {LEVEL_FA[l.level] ?? l.level}
+                  </span>
+                  <span className="truncate text-[14px] font-semibold">
+                    {SCOPE_FA[l.scope] ?? l.scope} · {l.event}
+                  </span>
+                </div>
+                <span className="secondary shrink-0 text-[12px] tabular-nums">
+                  {new Date(l.created_at).toLocaleString("fa-IR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+              {l.message && <div className="secondary mt-1 text-[13px]">{l.message}</div>}
+              {openId === l.id && l.detail && Object.keys(l.detail).length > 0 && (
+                <pre className="mt-2 overflow-x-auto text-left text-[11px] leading-5 secondary" dir="ltr">
+                  {JSON.stringify(l.detail, null, 2)}
+                </pre>
+              )}
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

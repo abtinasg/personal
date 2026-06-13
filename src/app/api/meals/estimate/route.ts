@@ -47,7 +47,7 @@ export async function POST(req: Request) {
           "name باید یک نام کوتاه و تمیز فارسی برای غذا باشد.",
       },
       { role: "user", content: desc },
-    ], { temperature: 0, seed: 1, maxTokens: 120 });
+    ], { temperature: 0, seed: 1, maxTokens: 120, tag: "meal_estimate" });
 
     const meal_type = TYPES.includes(est.meal_type) ? est.meal_type : "snack";
     const estimate = {

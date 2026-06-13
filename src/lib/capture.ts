@@ -85,7 +85,7 @@ export async function captureFromText(db: DB, uid: string, raw: string): Promise
         },
         { role: "user", content: text },
       ],
-      { temperature: 0.2, maxTokens: 600 }
+      { temperature: 0.2, maxTokens: 600, tag: "capture_text" }
     );
   } catch (e) {
     return { saved: [], errors: [e instanceof Error ? e.message : "نتونستم متن رو بفهمم."] };
@@ -191,7 +191,7 @@ export async function captureMealFromImage(
         },
       ],
       // temperature صفر + seed ثابت تا عکسِ یکسان همیشه همون کالری رو بده (نه هر بار یه عدد).
-      { temperature: 0, maxTokens: 400, seed: 1 }
+      { temperature: 0, maxTokens: 400, seed: 1, tag: "capture_image" }
     );
   } catch (e) {
     return { saved: [], errors: [e instanceof Error ? e.message : "نتونستم عکس رو تحلیل کنم."] };
