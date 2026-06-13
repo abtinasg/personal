@@ -12,11 +12,20 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiGet<T = any>(url: string): Promise<T> {
-  const r = await fetch(url, { cache: "no-store" });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new ApiError(j.error || "خطا در دریافت اطلاعات", r.status, j.code);
-  return j as T;
+/** In-flight deduplication map — shared across all concurrent apiGet calls. */
+const inFlight = new Map<string, Promise<unknown>>();
+
+export async function apiGet<T = unknown>(url: string): Promise<T> {
+  if (inFlight.has(url)) return inFlight.get(url) as Promise<T>;
+  const p = fetch(url, { cache: "no-store" })
+    .then(async (r) => {
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new ApiError(j.error || "خطا در دریافت اطلاعات", r.status, j.code);
+      return j as T;
+    })
+    .finally(() => inFlight.delete(url));
+  inFlight.set(url, p);
+  return p as Promise<T>;
 }
 
 export async function apiSend<T = any>(
