@@ -1,21 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiSend } from "@/lib/client";
 import { Spinner } from "@/components/ui";
 import { AppIcon } from "@/components/AppIcon";
 import { Mascot } from "@/components/Mascot";
-import { Phone, ShieldCheck, KeyRound, User, Download, Share, Plus, X } from "lucide-react";
+import { KeyRound, User, UserPlus, LogIn, Download, Share, Plus, X } from "lucide-react";
 
 const APP = process.env.NEXT_PUBLIC_APP_NAME || "امروز";
 const TAGLINE = "همین امروز";
 const ONBOARD_KEY = "zendegi:onboarded";
-const CODE_LEN = 5;
-const RESEND_SECONDS = 60;
 
-type Screen = "splash" | "onboarding" | "phone" | "code" | "credentials" | "password" | "setpass";
+type Screen = "splash" | "onboarding" | "login" | "signup";
 
 // هر اسلاید یک ته‌رنگِ پاستلی + اکسنت از پالتِ جدید (آبی/هلویی/سبز/یاسی) دارد.
 const SLIDES: { icon: string; title: string; desc: string; tint: string; accent: string; mascot?: boolean }[] = [
@@ -46,42 +44,39 @@ const SLIDES: { icon: string; title: string; desc: string; tint: string; accent:
 export default function LoginPage() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen | null>(null);
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
-    // مستقیم به اسلایدهای معرفی؛ اگر قبلاً دیده، به صفحهٔ شماره.
+    // مستقیم به اسلایدهای معرفی؛ اگر قبلاً دیده، به صفحهٔ ورود.
     let onboarded = false;
     try { onboarded = localStorage.getItem(ONBOARD_KEY) === "1"; } catch { /* noop */ }
-    setScreen(onboarded ? "phone" : "onboarding");
+    setScreen(onboarded ? "login" : "onboarding");
   }, []);
-
-  // شمارش معکوسِ ارسال مجدد کد
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const t = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(t);
-  }, [resendIn]);
 
   function goFromSplash() {
     let onboarded = false;
     try { onboarded = localStorage.getItem(ONBOARD_KEY) === "1"; } catch { /* noop */ }
-    setScreen(onboarded ? "phone" : "onboarding");
+    setScreen(onboarded ? "login" : "onboarding");
   }
 
   function finishOnboarding() {
     try { localStorage.setItem(ONBOARD_KEY, "1"); } catch { /* noop */ }
     setErr("");
-    setScreen("phone");
+    setScreen("login");
   }
 
-  // «اول بچش» — ورودِ مهمان بدونِ شماره؛ شماره بعداً موقعِ ذخیره گرفته می‌شود.
+  function switchTo(next: Screen) {
+    setErr("");
+    setPassword("");
+    setPassword2("");
+    setScreen(next);
+  }
+
+  // «اول بچش» — ورودِ مهمان بدونِ حساب؛ نام کاربری/رمز بعداً موقعِ ثبت‌نام گرفته می‌شود.
   async function startGuest() {
     try { localStorage.setItem(ONBOARD_KEY, "1"); } catch { /* noop */ }
     setErr("");
@@ -97,96 +92,8 @@ export default function LoginPage() {
     }
   }
 
-  // مرحلهٔ شماره: اول بررسی کن رمز دارد یا نه؛ اگر دارد برو صفحهٔ رمز، وگرنه کد بفرست.
-  async function continueFromPhone() {
-    setErr("");
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 10) return setErr("شمارهٔ موبایلت رو درست وارد کن.");
-    setBusy(true);
-    try {
-      const r = await apiSend<{ hasPassword: boolean }>("/api/auth/phone/check", "POST", { phone });
-      if (r.hasPassword) {
-        setPassword("");
-        setScreen("password");
-        return;
-      }
-      await sendCode();
-    } catch (e: any) {
-      setErr(humanize(e?.message));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // ارسال کد و رفتن به صفحهٔ کد (با مدیریت بازهٔ زمانی). busy را خودش مدیریت نمی‌کند.
-  async function sendCode() {
-    await apiSend("/api/auth/otp/request", "POST", { phone });
-    setCode("");
-    setScreen("code");
-    setResendIn(RESEND_SECONDS);
-  }
-
-  // «رمز را فراموش کردی؟ ورود با کد» — مستقیم مسیر OTP.
-  async function forgotPassword() {
-    setErr("");
-    setBusy(true);
-    try {
-      await sendCode();
-    } catch (e: any) {
-      setErr(humanize(e?.message));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // ورود کاربر عادی با شماره + رمز (مسیر B روت credentials).
-  async function loginWithPassword() {
-    setErr("");
-    if (!password.trim()) return setErr("رمز عبورت رو وارد کن.");
-    setBusy(true);
-    try {
-      await apiSend("/api/auth/credentials", "POST", { username: phone, password });
-      router.replace("/");
-      router.refresh();
-    } catch (e: any) {
-      setErr(humanize(e?.message));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // ساخت رمز بعد از ورود با کد، سپس ورود به اپ.
-  async function submitSetPassword() {
-    setErr("");
-    if (password.length < 6) return setErr("رمز باید حداقل ۶ کاراکتر باشد.");
-    if (password !== password2) return setErr("رمز و تکرارش یکی نیستند.");
-    setBusy(true);
-    try {
-      await apiSend("/api/auth/password/set", "POST", { password });
-      router.replace("/");
-      router.refresh();
-    } catch (e: any) {
-      setErr(humanize(e?.message));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resendCode() {
-    if (resendIn > 0 || busy) return;
-    setErr("");
-    setBusy(true);
-    try {
-      await apiSend("/api/auth/otp/request", "POST", { phone });
-      setResendIn(RESEND_SECONDS);
-    } catch (e: any) {
-      setErr(humanize(e?.message));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function loginWithCredentials() {
+  // ورود با نام کاربری + رمز عبور.
+  async function login() {
     setErr("");
     if (!username.trim() || !password.trim()) return setErr("نام کاربری و رمز عبور را وارد کن.");
     setBusy(true);
@@ -201,25 +108,19 @@ export default function LoginPage() {
     }
   }
 
-  async function verifyCode(submitCode?: string) {
-    const c = (submitCode ?? code).replace(/\D/g, "");
+  // ثبت‌نام با نام کاربری + رمز عبور.
+  async function signup() {
     setErr("");
-    if (c.length < CODE_LEN) return setErr("کد را کامل وارد کن.");
+    if (!username.trim()) return setErr("یک نام کاربری انتخاب کن.");
+    if (password.length < 6) return setErr("رمز باید حداقل ۶ کاراکتر باشد.");
+    if (password !== password2) return setErr("رمز و تکرارش یکی نیستند.");
     setBusy(true);
     try {
-      const r = await apiSend<{ hasPassword: boolean }>("/api/auth/otp/verify", "POST", { phone, code: c });
-      if (!r.hasPassword) {
-        // کاربر هنوز رمز ندارد — برای دفعهٔ بعد رمز بسازد.
-        setPassword("");
-        setPassword2("");
-        setScreen("setpass");
-        return;
-      }
+      await apiSend("/api/auth/signup", "POST", { username, password });
       router.replace("/");
       router.refresh();
     } catch (e: any) {
       setErr(humanize(e?.message));
-      setCode("");
     } finally {
       setBusy(false);
     }
@@ -235,186 +136,87 @@ export default function LoginPage() {
     return <Onboarding onStart={startGuest} onLogin={finishOnboarding} busy={busy} />;
   }
 
-  if (screen === "credentials") {
-    return (
-      <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
-        <div
-          className="flex-none flex flex-col"
-          style={{ height: "38dvh", background: "linear-gradient(135deg, var(--t-lav) 0%, var(--t-blue) 100%)" }}
-        >
-          <div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
-            <button
-              onClick={() => { setErr(""); setScreen("phone"); }}
-              className="h-9 w-9 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center text-[var(--ink)] shadow-soft active:scale-90 transition"
-              aria-label="برگشت"
-            >
-              <ChevronRight />
-            </button>
-            <span className="text-[var(--secondary)] text-[14px] font-medium">ورود مدیر</span>
-          </div>
-          <div className="flex-1 flex items-end justify-center">
-            <Mascot size={132} pose="wave" float />
-          </div>
+  const isSignup = screen === "signup";
+
+  return (
+    <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
+      {/* بخش بالایی پاستلی با آدمکِ جوانه */}
+      <div
+        className="flex-none flex flex-col"
+        style={{
+          height: "38dvh",
+          background: isSignup
+            ? "linear-gradient(135deg, var(--t-sage) 0%, var(--t-blue) 100%)"
+            : "linear-gradient(135deg, var(--t-blue) 0%, var(--t-sage) 100%)",
+        }}
+      >
+        <div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
+          <button
+            onClick={() => setScreen("onboarding")}
+            className="h-9 w-9 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center text-[var(--ink)] shadow-soft active:scale-90 transition"
+            aria-label="برگشت"
+          >
+            <ChevronRight />
+          </button>
+          <span className="text-[var(--secondary)] text-[14px] font-medium">
+            {isSignup ? "ساختِ حساب" : "خوش برگشتی"}
+          </span>
         </div>
-        <div
-          className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
-          style={{ minHeight: "62dvh" }}
-        >
-          <div className="mb-6">
-            <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">ورود با رمز عبور</h1>
-            <p className="text-[15px] text-[var(--secondary)] mt-1">نام کاربری و رمز عبور ادمین را وارد کن.</p>
-          </div>
-
-          <div className="space-y-3 mb-5">
-            <div className="relative">
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
-                <User size={18} />
-              </span>
-              <input
-                className="ios-input w-full pr-10 text-right"
-                placeholder="نام کاربری"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && loginWithCredentials()}
-                disabled={busy}
-              />
-            </div>
-            <div className="relative">
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
-                <KeyRound size={18} />
-              </span>
-              <input
-                className="ios-input w-full pr-10 text-right"
-                placeholder="رمز عبور"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && loginWithCredentials()}
-                disabled={busy}
-              />
-            </div>
-          </div>
-
-          {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
-
-          <PillButton onClick={loginWithCredentials} disabled={busy} busy={busy}>
-            <KeyRound size={18} />
-            ورود
-          </PillButton>
+        <div className="flex-1 flex items-end justify-center">
+          <Mascot size={132} pose={isSignup ? "cheer" : "wave"} float />
         </div>
       </div>
-    );
-  }
 
-  if (screen === "password") {
-    return (
-      <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
-        <div
-          className="flex-none flex flex-col"
-          style={{ height: "38dvh", background: "linear-gradient(135deg, var(--t-blue) 0%, var(--t-sage) 100%)" }}
-        >
-          <div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
-            <button
-              onClick={() => { setErr(""); setScreen("phone"); }}
-              className="h-9 w-9 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center text-[var(--ink)] shadow-soft active:scale-90 transition"
-              aria-label="برگشت"
-            >
-              <ChevronRight />
-            </button>
-            <span className="text-[var(--secondary)] text-[14px] font-medium">خوش برگشتی</span>
-          </div>
-          <div className="flex-1 flex items-end justify-center">
-            <Mascot size={132} pose="wave" float />
-          </div>
+      {/* کارت پایینی سفید */}
+      <div
+        className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
+        style={{ minHeight: "62dvh" }}
+      >
+        <div className="mb-6">
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">
+            {isSignup ? "یک حساب بساز" : "وارد شو"}
+          </h1>
+          <p className="text-[15px] text-[var(--secondary)] mt-1">
+            {isSignup
+              ? "نام کاربری و رمز عبور انتخاب کن — همین برای ورودهای بعدی کافیه."
+              : "با نام کاربری و رمز عبورت وارد شو."}
+          </p>
         </div>
-        <div
-          className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
-          style={{ minHeight: "62dvh" }}
-        >
-          <div className="mb-6">
-            <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">رمزت رو وارد کن</h1>
-            <p className="text-[15px] text-[var(--secondary)] mt-1">
-              برای <span dir="ltr" className="font-semibold">{toFaDigits(phone)}</span> رمز عبور تعیین شده.
-            </p>
-          </div>
 
-          <div className="relative mb-5">
+        <div className="space-y-3 mb-5">
+          <div className="relative">
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
+              <User size={18} />
+            </span>
+            <input
+              className="ios-input w-full pr-10 text-right"
+              placeholder="نام کاربری"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (isSignup ? signup() : login())}
+              disabled={busy}
+              style={{ direction: "ltr", textAlign: "right" }}
+            />
+          </div>
+          <div className="relative">
             <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
               <KeyRound size={18} />
             </span>
             <input
               className="ios-input w-full pr-10 text-right"
-              placeholder="رمز عبور"
+              placeholder={isSignup ? "رمز عبور (حداقل ۶ کاراکتر)" : "رمز عبور"}
               type="password"
-              autoComplete="current-password"
+              autoComplete={isSignup ? "new-password" : "current-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && loginWithPassword()}
+              onKeyDown={(e) => e.key === "Enter" && (isSignup ? signup() : login())}
               disabled={busy}
-              autoFocus
             />
           </div>
-
-          {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
-
-          <PillButton onClick={loginWithPassword} disabled={busy} busy={busy}>
-            <KeyRound size={18} />
-            ورود
-          </PillButton>
-
-          <button
-            className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60 disabled:opacity-50"
-            onClick={forgotPassword}
-            disabled={busy}
-          >
-            رمزت رو فراموش کردی؟ ورود با کد
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (screen === "setpass") {
-    return (
-      <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
-        <div
-          className="flex-none flex flex-col"
-          style={{ height: "38dvh", background: "linear-gradient(135deg, var(--t-sage) 0%, var(--t-blue) 100%)" }}
-        >
-          <div className="flex items-center justify-end px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
-            <span className="text-[var(--secondary)] text-[14px] font-medium">یک قدم تا پایان</span>
-          </div>
-          <div className="flex-1 flex items-end justify-center">
-            <Mascot size={132} pose="cheer" float />
-          </div>
-        </div>
-        <div
-          className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
-          style={{ minHeight: "62dvh" }}
-        >
-          <div className="mb-6">
-            <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">یک رمز برای خودت بساز</h1>
-            <p className="text-[15px] text-[var(--secondary)] mt-1">دفعهٔ بعد بدون پیامک و سریع با همین رمز وارد می‌شوی.</p>
-          </div>
-
-          <div className="space-y-3 mb-5">
-            <div className="relative">
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
-                <KeyRound size={18} />
-              </span>
-              <input
-                className="ios-input w-full pr-10 text-right"
-                placeholder="رمز عبور (حداقل ۶ کاراکتر)"
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={busy}
-                autoFocus
-              />
-            </div>
+          {isSignup && (
             <div className="relative">
               <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
                 <KeyRound size={18} />
@@ -426,169 +228,35 @@ export default function LoginPage() {
                 autoComplete="new-password"
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitSetPassword()}
+                onKeyDown={(e) => e.key === "Enter" && signup()}
                 disabled={busy}
               />
             </div>
-          </div>
+          )}
+        </div>
 
-          {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
+        {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
 
-          <PillButton onClick={submitSetPassword} disabled={busy} busy={busy}>
-            <ShieldCheck size={18} />
-            ذخیره و ورود
-          </PillButton>
+        <PillButton onClick={isSignup ? signup : login} disabled={busy} busy={busy}>
+          {isSignup ? <UserPlus size={18} /> : <LogIn size={18} />}
+          {isSignup ? "ثبت‌نام و ورود" : "ورود"}
+        </PillButton>
 
-          <button
-            className="w-full text-center text-[13px] text-[var(--secondary)] mt-4 active:opacity-60 disabled:opacity-50"
-            onClick={() => { router.replace("/"); router.refresh(); }}
-            disabled={busy}
-          >
-            فعلاً نه، بعداً تنظیم می‌کنم
-          </button>
-          <p className="text-center text-[11px] text-[var(--secondary)]/70 mt-1.5">
-            بدون رمز، دفعهٔ بعد باید دوباره پیامک صبر کنی.
+        {!isSignup && (
+          <p className="text-center text-[12px] leading-5 text-[var(--secondary)] mt-4">
+            با ورود، {" "}
+            <Link href="/legal" className="text-ios-blue font-medium">قوانین و حریم خصوصی</Link>{" "}
+            رو می‌پذیری.
           </p>
-        </div>
-      </div>
-    );
-  }
-
-  const isCode = screen === "code";
-
-  return (
-    <div className="relative flex flex-col min-h-[100dvh] overflow-hidden" dir="rtl">
-      {/* بخش بالایی پاستلی با آدمکِ جوانه */}
-      <div
-        className="flex-none flex flex-col"
-        style={{
-          height: "38dvh",
-          background: "linear-gradient(135deg, var(--t-blue) 0%, var(--t-sage) 100%)",
-        }}
-      >
-        {/* نوار بالا */}
-        <div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-2">
-          <button
-            onClick={() => {
-              if (isCode) { setErr(""); setScreen("phone"); }
-              else setScreen("onboarding");
-            }}
-            className="h-9 w-9 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center text-[var(--ink)] shadow-soft active:scale-90 transition"
-            aria-label="برگشت"
-          >
-            <ChevronRight />
-          </button>
-          <span className="w-9" />
-        </div>
-
-        {/* آدمکِ جوانه در بخش پاستلی */}
-        <div className="flex-1 flex items-end justify-center">
-          <Mascot size={132} pose={isCode ? "cheer" : "wave"} float />
-        </div>
-      </div>
-
-      {/* کارت پایینی سفید */}
-      <div
-        className="flex-1 flex flex-col rounded-t-[36px] bg-[var(--card-solid)] px-6 pt-7 pb-[max(28px,env(safe-area-inset-bottom))] -mt-5 shadow-[0_-4px_30px_-10px_rgba(30,40,70,0.18)]"
-        style={{ minHeight: "62dvh" }}
-      >
-        {/* عنوان */}
-        <div className="mb-6">
-          <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--label)] leading-tight">
-            {isCode ? "کد تأیید رو بزن" : "شماره‌ت رو وارد کن"}
-          </h1>
-          <p className="text-[15px] text-[var(--secondary)] mt-1">
-            {isCode ? (
-              <>
-                کد به <span dir="ltr" className="font-semibold">{toFaDigits(phone)}</span> پیامک شد.
-              </>
-            ) : (
-              "با شمارهٔ موبایل ساده و امن وارد شو."
-            )}
-          </p>
-        </div>
-
-        {isCode && (
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-[var(--secondary)]/20" />
-            <span className="text-[12px] text-[var(--secondary)]">کد ۵ رقمیِ پیامک‌شده</span>
-            <div className="flex-1 h-px bg-[var(--secondary)]/20" />
-          </div>
         )}
 
-        {!isCode ? (
-          /* ----- مرحلهٔ شماره ----- */
-          <>
-            <div className="relative mb-5">
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--secondary)] pointer-events-none">
-                <Phone size={18} />
-              </span>
-              <input
-                className="ios-input w-full pr-10 text-right"
-                placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && continueFromPhone()}
-                disabled={busy}
-                style={{ textAlign: "right", direction: "ltr", letterSpacing: "0.04em" }}
-              />
-            </div>
-
-            {err && <p className="text-ios-red text-[13px] text-center mb-3">{err}</p>}
-
-            <PillButton onClick={continueFromPhone} disabled={busy} busy={busy}>
-              <Phone size={18} />
-              ادامه
-            </PillButton>
-
-            <p className="text-center text-[12px] leading-5 text-[var(--secondary)] mt-4">
-              با ادامه، {" "}
-              <Link href="/legal" className="text-ios-blue font-medium">قوانین و حریم خصوصی</Link>{" "}
-              رو می‌پذیری.
-            </p>
-
-          </>
-        ) : (
-          /* ----- مرحلهٔ کد ----- */
-          <>
-            <CodeInput
-              length={CODE_LEN}
-              value={code}
-              onChange={setCode}
-              onComplete={(c) => verifyCode(c)}
-              disabled={busy}
-            />
-
-            {err && <p className="text-ios-red text-[13px] text-center mt-4 mb-1">{err}</p>}
-
-            <div className="mt-5">
-              <PillButton onClick={() => verifyCode()} disabled={busy} busy={busy}>
-                <ShieldCheck size={18} />
-                تأیید و ورود
-              </PillButton>
-            </div>
-
-            <p className="text-center text-[14px] mt-5 text-[var(--secondary)]">
-              کد نرسید؟{" "}
-              {resendIn > 0 ? (
-                <span className="text-[var(--secondary)]">
-                  ارسال مجدد تا {toFaDigits(String(resendIn))} ثانیه
-                </span>
-              ) : (
-                <button
-                  className="text-ios-blue font-semibold active:opacity-60"
-                  onClick={resendCode}
-                  disabled={busy}
-                >
-                  ارسال دوباره
-                </button>
-              )}
-            </p>
-          </>
-        )}
+        <button
+          className="w-full text-center text-[14px] text-ios-blue font-medium mt-4 active:opacity-60 disabled:opacity-50"
+          onClick={() => switchTo(isSignup ? "login" : "signup")}
+          disabled={busy}
+        >
+          {isSignup ? "قبلاً حساب داری؟ ورود" : "حساب نداری؟ ثبت‌نام کن"}
+        </button>
       </div>
     </div>
   );
@@ -614,71 +282,6 @@ function PillButton({
     >
       {busy ? <Spinner /> : children}
     </button>
-  );
-}
-
-function CodeInput({
-  length,
-  value,
-  onChange,
-  onComplete,
-  disabled,
-}: {
-  length: number;
-  value: string;
-  onChange: (v: string) => void;
-  onComplete: (v: string) => void;
-  disabled?: boolean;
-}) {
-  const refs = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.split("");
-
-  function setAt(i: number, raw: string) {
-    const d = raw.replace(/\D/g, "");
-    if (!d) {
-      // پاک‌کردنِ خانهٔ فعلی
-      const next = value.slice(0, i) + value.slice(i + 1);
-      onChange(next);
-      return;
-    }
-    // اگر چند رقم چسبیده شد (paste)، پخش کن.
-    let next = value.split("");
-    for (const ch of d) {
-      const slot = next.length < length ? next.length : i;
-      if (slot >= length) break;
-      next[slot] = ch;
-    }
-    const joined = next.join("").slice(0, length);
-    onChange(joined);
-    const focusTo = Math.min(joined.length, length - 1);
-    refs.current[focusTo]?.focus();
-    if (joined.length === length) onComplete(joined);
-  }
-
-  function onKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
-      refs.current[i - 1]?.focus();
-    }
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-2.5" dir="ltr">
-      {Array.from({ length }).map((_, i) => (
-        <input
-          key={i}
-          ref={(el) => { refs.current[i] = el; }}
-          value={digits[i] ? toFaDigits(digits[i]) : ""}
-          onChange={(e) => setAt(i, e.target.value)}
-          onKeyDown={(e) => onKeyDown(i, e)}
-          onFocus={(e) => e.target.select()}
-          inputMode="numeric"
-          maxLength={length}
-          autoFocus={i === 0}
-          disabled={disabled}
-          className="h-14 w-12 rounded-2xl border border-[var(--secondary)]/25 bg-[var(--bg)] text-center text-[24px] font-bold text-[var(--label)] focus:border-ios-blue focus:ring-2 focus:ring-ios-blue/20 outline-none transition disabled:opacity-50"
-        />
-      ))}
-    </div>
   );
 }
 
@@ -934,10 +537,6 @@ function PwaInstallHint() {
       )}
     </>
   );
-}
-
-function toFaDigits(s: string): string {
-  return s.replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 }
 
 function ChevronDown() {
