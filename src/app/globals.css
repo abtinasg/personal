@@ -247,3 +247,71 @@ input[type="number"] {
   width: 0;
   height: 0;
 }
+
+/* ====== کارتِ بلاگ (hover بدونِ JS تا صفحه Server Component بماند) ====== */
+.blog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh);
+}
+
+/* ====== محتوای بلاگ ====== */
+.blog-content {
+  font-size: 17px;
+  line-height: 1.95;
+  color: var(--ink);
+}
+.blog-content h2 {
+  font-family: var(--font-display, serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 2.4rem 0 1rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.blog-content h3 {
+  font-family: var(--font-display, serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 2rem 0 0.75rem;
+  color: var(--ink);
+}
+.blog-content p { margin: 1.2rem 0; }
+.blog-content a { color: var(--blue); text-decoration: underline; }
+.blog-content ul, .blog-content ol { padding-right: 1.6rem; margin: 1rem 0; }
+.blog-content li { margin: 0.5rem 0; }
+.blog-content blockquote {
+  border-right: 3px solid var(--sage);
+  margin: 1.5rem 0;
+  padding: 0.5rem 1.2rem;
+  color: var(--secondary);
+}
+.blog-content img {
+  width: 100%;
+  border-radius: var(--r-sm);
+  margin: 1.5rem 0;
+  display: block;
+}
+.blog-content code {
+  background: var(--t-grey);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.88em;
+  direction: ltr;
+  display: inline-block;
+}
+.blog-content pre {
+  background: var(--ink-2);
+  color: #e8eaf0;
+  border-radius: var(--r-sm);
+  padding: 1.2rem;
+  overflow-x: auto;
+  direction: ltr;
+  margin: 1.5rem 0;
+}
+.blog-content pre code { background: none; padding: 0; color: inherit; }
+.blog-content strong { font-weight: 700; }
+.blog-content hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 2rem 0;
+}

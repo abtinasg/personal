@@ -8,6 +8,7 @@ import { ROLE_FA, ASSIGNABLE_ROLES, type Capability, type Role } from "@/lib/rol
 import AdminDashboardView from "@/components/views/AdminDashboardView";
 import AdminControlsView from "@/components/views/AdminControlsView";
 import AdminTicketsView from "@/components/views/AdminTicketsView";
+import AdminBlogView from "@/components/views/AdminBlogView";
 
 const TABLE_LABELS: Record<string, string> = {
   users: "کاربران",
@@ -29,7 +30,7 @@ const TABLE_LABELS: Record<string, string> = {
   purchase_goals: "اهداف خرید",
 };
 
-type Tab = "dashboard" | "tickets" | "controls" | "logs" | "stats" | "tables" | "users";
+type Tab = "dashboard" | "tickets" | "controls" | "logs" | "stats" | "tables" | "users" | "blog";
 
 /** هر تب چه مجوزی لازم دارد (کمترین‌دسترسی). */
 const TAB_CAP: Record<Tab, Capability> = {
@@ -40,6 +41,7 @@ const TAB_CAP: Record<Tab, Capability> = {
   stats: "view_admin",
   tables: "view_admin",
   users: "view_admin",
+  blog: "manage_data",
 };
 
 const TAB_LABEL: Record<Tab, string> = {
@@ -50,6 +52,7 @@ const TAB_LABEL: Record<Tab, string> = {
   stats: "آمار",
   tables: "جدول‌ها",
   users: "کاربران",
+  blog: "بلاگ",
 };
 
 type Me = { role: Role; roleLabel: string; capabilities: Capability[] };
@@ -105,6 +108,7 @@ export default function AdminView() {
       {activeTab === "users" && (
         <UsersTab canDelete={caps.has("manage_users")} canManageRoles={caps.has("manage_roles")} />
       )}
+      {activeTab === "blog" && <AdminBlogView />}
     </div>
   );
 }
