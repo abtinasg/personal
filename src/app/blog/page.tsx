@@ -8,7 +8,8 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "یک‌درصد";
 const BASE_URL  = process.env.NEXT_PUBLIC_BASE_URL  ?? "https://yekdarsad.ir";
 
 export const metadata: Metadata = {
-  title: `بلاگ | ${APP_NAME}`,
+  // برند را template در layout ریشه («%s · یک‌درصد») می‌چسباند.
+  title: "بلاگ",
   description: "مقالاتی درباره‌ی عادت‌سازی، سبک زندگی، سلامت، و بهره‌وری روزانه",
   alternates: { canonical: `${BASE_URL}/blog` },
   openGraph: {
@@ -197,6 +198,7 @@ export default async function BlogPage({
             {posts.map((post) => (
               <Link key={post.id} href={`/blog/${post.slug}`} style={{ textDecoration: "none" }}>
                 <article
+                  className="blog-card"
                   style={{
                     background: "var(--card)",
                     borderRadius: "var(--r, 24px)",
@@ -206,14 +208,6 @@ export default async function BlogPage({
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                    (e.currentTarget as HTMLElement).style.boxShadow = "var(--sh)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.transform = "";
-                    (e.currentTarget as HTMLElement).style.boxShadow = "var(--sh-sm)";
                   }}
                 >
                   {post.cover_url && (

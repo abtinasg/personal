@@ -248,6 +248,12 @@ input[type="number"] {
   height: 0;
 }
 
+/* ====== کارتِ بلاگ (hover بدونِ JS تا صفحه Server Component بماند) ====== */
+.blog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh);
+}
+
 /* ====== محتوای بلاگ ====== */
 .blog-content {
   font-size: 17px;

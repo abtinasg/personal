@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, SectionTitle, Spinner } from "@/components/ui";
+import { SectionTitle, Spinner } from "@/components/ui";
 
 type Post = {
   id: string;
@@ -176,7 +176,7 @@ export default function AdminBlogView() {
           </button>
         </div>
 
-        <Card style={{ padding: "20px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="card" style={{ padding: "20px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
           {/* title */}
           <label style={labelStyle}>
             <span>عنوان *</span>
@@ -332,7 +332,7 @@ export default function AdminBlogView() {
           >
             {saving ? "در حال ذخیره..." : editId ? "بروزرسانی" : "ایجاد مقاله"}
           </button>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -347,13 +347,13 @@ export default function AdminBlogView() {
       </div>
 
       {posts.length === 0 ? (
-        <Card style={{ padding: 32, textAlign: "center", color: "var(--secondary)" }}>
+        <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--secondary)" }}>
           هنوز مقاله‌ای ثبت نشده.
-        </Card>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {posts.map((p) => (
-            <Card key={p.id} style={{ padding: "14px 16px" }}>
+            <div key={p.id} className="card" style={{ padding: "14px 16px" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 {/* status dot */}
                 <div
@@ -437,7 +437,7 @@ export default function AdminBlogView() {
                   </button>
                 </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}

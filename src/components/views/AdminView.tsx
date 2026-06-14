@@ -108,6 +108,7 @@ export default function AdminView() {
       {activeTab === "users" && (
         <UsersTab canDelete={caps.has("manage_users")} canManageRoles={caps.has("manage_roles")} />
       )}
+      {activeTab === "blog" && <AdminBlogView />}
     </div>
   );
 }

@@ -46,7 +46,8 @@ export async function generateMetadata({
   const url = `${BASE_URL}/blog/${post.slug}`;
 
   return {
-    title: `${title} | ${APP_NAME}`,
+    // برند را اینجا اضافه نمی‌کنیم؛ template در layout ریشه («%s · یک‌درصد») خودش می‌چسباند.
+    title,
     description,
     alternates: { canonical: url },
     openGraph: {
